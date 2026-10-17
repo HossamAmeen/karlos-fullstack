@@ -1,0 +1,68 @@
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | migrations
+  | staticfiles
+  | media
+)/
+'''
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = [
+    ".venv",
+    ".git",
+    "migrations",
+    "staticfiles",
+    "media",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+    "N",
+    "S",
+]
+ignore = [
+    "S101",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S105", "S106"]
+"config/settings/**" = ["F405", "F403"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+disable_error_code = ["no-any-return"]
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+exclude = [
+    "migrations/",
+    ".venv/",
+]
+
+[tool.django-stubs]
+django_settings_module = "config.settings.test"
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "-ra --cov=apps --cov-report=term-missing"

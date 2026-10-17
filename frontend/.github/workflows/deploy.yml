@@ -1,0 +1,49 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-frontend
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install & build
+        env:
+          VITE_API_BASE_URL: https://api.karlos.hossam-ameen.online
+        run: |
+          npm ci
+          npm run build
+
+  deploy:
+    name: Deploy to DigitalOcean
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            echo "Deploying frontend branch: ${{ github.ref_name }} @ ${{ github.sha }}"
+            /opt/karlop/deploy-frontend.sh "${{ github.ref_name }}"
+            echo "Frontend deploy finished"
