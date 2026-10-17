@@ -25,8 +25,9 @@ export const useExpensesStore = defineStore('expenses', () => {
   const dateFilter = ref('')
   const startDateFilter = ref('')
   const endDateFilter = ref('')
-  const categoryFilter = ref('')
-  const serviceCategoryFilter = ref<number | null>(null)
+  const mainCategoryFilter = ref<number | null>(null)
+  const categoryFilter = ref<number | null>(null)
+  const clientFilter = ref<number | null>(null)
 
   async function fetchAll() {
     loading.value = true
@@ -37,8 +38,9 @@ export const useExpensesStore = defineStore('expenses', () => {
         date: dateFilter.value || undefined,
         start_date: startDateFilter.value || undefined,
         end_date: endDateFilter.value || undefined,
-        category: categoryFilter.value || undefined,
-        service_category: serviceCategoryFilter.value ?? undefined,
+        main_category: mainCategoryFilter.value ?? undefined,
+        category: categoryFilter.value ?? undefined,
+        client: clientFilter.value ?? undefined,
       }
       
       const [listData, summaryData] = await Promise.all([
@@ -75,7 +77,8 @@ export const useExpensesStore = defineStore('expenses', () => {
 
   return { 
     items, summary, loading, error, 
-    search, dateFilter, startDateFilter, endDateFilter, categoryFilter, serviceCategoryFilter,
+    search, dateFilter, startDateFilter, endDateFilter,
+    mainCategoryFilter, categoryFilter, clientFilter,
     fetchAll, create, update, remove 
   }
 })

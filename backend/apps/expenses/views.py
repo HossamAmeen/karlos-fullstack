@@ -1,11 +1,58 @@
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .filters import ExpenseFilter
-from .selectors import get_expenses, get_expenses_summary
-from .serializers import ExpenseSerializer
+from .filters import (
+    ExpenseCategoryFilter,
+    ExpenseFilter,
+    ExpenseMainCategoryFilter,
+)
+from .selectors import (
+    get_categories,
+    get_expenses,
+    get_expenses_summary,
+    get_main_categories,
+)
+from .serializers import (
+    ExpenseCategorySerializer,
+    ExpenseMainCategorySerializer,
+    ExpenseSerializer,
+)
+from .services import (
+    ExpenseCategoryService,
+    ExpenseMainCategoryService,
+)
+
+
+class ExpenseMainCategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = ExpenseMainCategorySerializer
+    filterset_class = ExpenseMainCategoryFilter
+    search_fields = ["name"]
+    ordering_fields = ["id", "name", "created_at", "updated_at"]
+    ordering = ["name", "id"]
+
+    def get_queryset(self):
+        return get_main_categories()
+
+    def destroy(self, request, *args, **kwargs):
+        ExpenseMainCategoryService.delete(category=self.get_object())
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ExpenseCategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = ExpenseCategorySerializer
+    filterset_class = ExpenseCategoryFilter
+    search_fields = ["name", "main_category__name"]
+    ordering_fields = ["id", "name", "created_at", "updated_at"]
+    ordering = ["main_category__name", "name", "id"]
+
+    def get_queryset(self):
+        return get_categories()
+
+    def destroy(self, request, *args, **kwargs):
+        ExpenseCategoryService.delete(category=self.get_object())
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ExpenseViewSet(viewsets.ModelViewSet):
@@ -35,13 +82,16 @@ class ExpenseViewSet(viewsets.ModelViewSet):
                 required=False,
             ),
             OpenApiParameter(
-                "category", type=str, description="Main Category", required=False
+                "main_category",
+                type=int,
+                description="Expense Main Category ID",
+                required=False,
             ),
             OpenApiParameter(
-                "service_category",
-                type=int,
-                description="Service Category ID",
-                required=False,
+                "category", type=int, description="Expense Category ID", required=False
+            ),
+            OpenApiParameter(
+                "client", type=int, description="Client ID", required=False
             ),
         ]
     )

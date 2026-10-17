@@ -3,7 +3,7 @@ import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
-import type { Expense, ExpenseCategory } from '@/api/expenses'
+import type { Expense } from '@/api/expenses'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -14,11 +14,13 @@ import UiTextarea from '@/components/ui/UiTextarea.vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { useExpensesStore } from '@/stores/expenses'
-import { useServiceCategoriesStore } from '@/stores/serviceCategories'
+import { useClientsStore } from '@/stores/clients'
+import { useExpenseCategoriesStore } from '@/stores/expenseCategories'
 
 const auth = useAuthStore()
 const expenses = useExpensesStore()
-const serviceCategoriesStore = useServiceCategoriesStore()
+const lookups = useExpenseCategoriesStore()
+const clientsStore = useClientsStore()
 const router = useRouter()
 
 const dialogOpen = ref(false)
@@ -30,17 +32,36 @@ const form = reactive({
   amount: '',
   description: '',
   expense_date: new Date().toISOString().split('T')[0],
-  category: 'factory' as ExpenseCategory,
-  service_category: null as number | null,
+  main_category: null as number | null,
+  category: null as number | null,
+  client: null as number | null,
 })
+
+const formCategories = computed(() =>
+  lookups.categories.filter((c) => c.main_category === form.main_category),
+)
+const filterCategories = computed(() =>
+  lookups.categories.filter(
+    (c) =>
+      expenses.mainCategoryFilter == null || c.main_category === expenses.mainCategoryFilter,
+  ),
+)
+
+watch(
+  () => form.main_category,
+  () => {
+    if (!formCategories.value.some((c) => c.id === form.category)) form.category = null
+  },
+)
 
 function resetForm() {
   editingId.value = null
   form.amount = ''
   form.description = ''
   form.expense_date = new Date().toISOString().split('T')[0]
-  form.category = 'factory'
-  form.service_category = null
+  form.main_category = null
+  form.category = null
+  form.client = null
   formError.value = null
 }
 
@@ -54,8 +75,9 @@ function openEdit(expense: Expense) {
   form.amount = expense.amount
   form.description = expense.description
   form.expense_date = expense.expense_date
+  form.main_category = expense.main_category
   form.category = expense.category
-  form.service_category = expense.service_category
+  form.client = expense.client
   formError.value = null
   dialogOpen.value = true
 }
@@ -74,10 +96,20 @@ async function handleAuthError(err: unknown) {
 
 async function load() {
   try {
-    await Promise.all([expenses.fetchAll(), serviceCategoriesStore.fetchAll()])
+    await Promise.all([
+      expenses.fetchAll(),
+      lookups.fetchMainCategories(),
+      lookups.fetchCategories(),
+      clientsStore.fetchAll(),
+    ])
   } catch (err) {
     await handleAuthError(err)
   }
+}
+
+function onMainFilterChange() {
+  expenses.categoryFilter = null
+  applyFilters()
 }
 
 function applyFilters() {
@@ -89,8 +121,9 @@ function clearFilters() {
   expenses.dateFilter = ''
   expenses.startDateFilter = ''
   expenses.endDateFilter = ''
-  expenses.categoryFilter = ''
-  expenses.serviceCategoryFilter = null
+  expenses.mainCategoryFilter = null
+  expenses.categoryFilter = null
+  expenses.clientFilter = null
   applyFilters()
 }
 
@@ -108,8 +141,8 @@ async function onSubmit() {
     formError.value = 'تاريخ المصروف مطلوب.'
     return
   }
-  if (form.category === 'services' && !form.service_category) {
-    formError.value = 'قسم الخدمات مطلوب للمصروفات من نوع خدمات.'
+  if (!form.category) {
+    formError.value = 'التصنيف الفرعي مطلوب.'
     return
   }
 
@@ -118,7 +151,7 @@ async function onSubmit() {
     description: form.description.trim(),
     expense_date: form.expense_date,
     category: form.category,
-    service_category: form.category === 'services' ? form.service_category : null,
+    client: form.client,
   }
 
   saving.value = true
@@ -152,13 +185,6 @@ async function onDelete(expense: Expense) {
   }
 }
 
-const categoryLabel = (cat: string) => {
-  if (cat === 'factory') return 'المصنع'
-  if (cat === 'salaries') return 'الرواتب'
-  if (cat === 'services') return 'الخدمات'
-  return cat
-}
-
 onMounted(() => {
   void load()
 })
@@ -179,17 +205,13 @@ onMounted(() => {
         <h3>إجمالي المصروفات</h3>
         <div class="summary-value">{{ expenses.summary.total_expenses }}</div>
       </UiCard>
-      <UiCard class="summary-card">
-        <h3>مصروفات المصنع</h3>
-        <div class="summary-value">{{ expenses.summary.total_factory }}</div>
-      </UiCard>
-      <UiCard class="summary-card">
-        <h3>الرواتب</h3>
-        <div class="summary-value">{{ expenses.summary.total_salaries }}</div>
-      </UiCard>
-      <UiCard class="summary-card">
-        <h3>الخدمات</h3>
-        <div class="summary-value">{{ expenses.summary.total_services }}</div>
+      <UiCard
+        v-for="row in expenses.summary.by_main_category"
+        :key="row.main_category"
+        class="summary-card"
+      >
+        <h3>{{ row.main_category_name }}</h3>
+        <div class="summary-value">{{ row.total }}</div>
       </UiCard>
     </div>
 
@@ -200,20 +222,29 @@ onMounted(() => {
           <UiInput v-model="expenses.search" @keyup.enter="applyFilters" placeholder="كلمة بحث..." />
         </div>
         <div class="ui-field">
-          <UiLabel>التصنيف</UiLabel>
-          <UiSelect v-model="expenses.categoryFilter" @change="applyFilters">
-            <option value="">الكل</option>
-            <option value="factory">المصنع</option>
-            <option value="salaries">الرواتب</option>
-            <option value="services">الخدمات</option>
+          <UiLabel>التصنيف الرئيسي</UiLabel>
+          <UiSelect v-model="expenses.mainCategoryFilter" @change="onMainFilterChange">
+            <option :value="null">الكل</option>
+            <option v-for="m in lookups.mainCategories" :key="m.id" :value="m.id">
+              {{ m.name }}
+            </option>
           </UiSelect>
         </div>
-        <div class="ui-field" v-if="expenses.categoryFilter === 'services'">
-          <UiLabel>قسم الخدمات</UiLabel>
-          <UiSelect v-model="expenses.serviceCategoryFilter" @change="applyFilters">
+        <div class="ui-field">
+          <UiLabel>التصنيف الفرعي</UiLabel>
+          <UiSelect v-model="expenses.categoryFilter" @change="applyFilters">
             <option :value="null">الكل</option>
-            <option v-for="cat in serviceCategoriesStore.items" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
+            <option v-for="c in filterCategories" :key="c.id" :value="c.id">
+              {{ c.name }}
+            </option>
+          </UiSelect>
+        </div>
+        <div class="ui-field">
+          <UiLabel>العميل</UiLabel>
+          <UiSelect v-model="expenses.clientFilter" @change="applyFilters">
+            <option :value="null">الكل</option>
+            <option v-for="t in clientsStore.items" :key="t.id" :value="t.id">
+              {{ t.name }}
             </option>
           </UiSelect>
         </div>
@@ -244,7 +275,9 @@ onMounted(() => {
           <thead>
             <tr>
               <th>التاريخ</th>
-              <th>التصنيف</th>
+              <th>التصنيف الرئيسي</th>
+              <th>التصنيف الفرعي</th>
+              <th>العميل</th>
               <th>الوصف</th>
               <th>المبلغ</th>
               <th>إجراءات</th>
@@ -252,19 +285,16 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="expenses.loading">
-              <td colspan="5" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="7" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="expenses.items.length === 0">
-              <td colspan="5" class="ui-empty">لا توجد مصروفات.</td>
+              <td colspan="7" class="ui-empty">لا توجد مصروفات.</td>
             </tr>
             <tr v-for="expense in expenses.items" :key="expense.id">
               <td>{{ expense.expense_date }}</td>
-              <td>
-                {{ categoryLabel(expense.category) }}
-                <span v-if="expense.category === 'services' && expense.service_category_name" class="service-badge">
-                  ({{ expense.service_category_name }})
-                </span>
-              </td>
+              <td>{{ expense.main_category_name }}</td>
+              <td>{{ expense.category_name }}</td>
+              <td>{{ expense.client_name || '—' }}</td>
               <td>{{ expense.description }}</td>
               <td>{{ expense.amount }}</td>
               <td>
@@ -297,20 +327,36 @@ onMounted(() => {
         </div>
 
         <div class="ui-field">
-          <UiLabel html-for="expense-category">التصنيف الرئيسي</UiLabel>
-          <UiSelect id="expense-category" v-model="form.category" required>
-            <option value="factory">المصنع</option>
-            <option value="salaries">الرواتب</option>
-            <option value="services">الخدمات</option>
+          <UiLabel html-for="expense-main-category">التصنيف الرئيسي</UiLabel>
+          <UiSelect id="expense-main-category" v-model="form.main_category" required>
+            <option :value="null" disabled>اختر التصنيف الرئيسي</option>
+            <option v-for="m in lookups.mainCategories" :key="m.id" :value="m.id">
+              {{ m.name }}
+            </option>
           </UiSelect>
         </div>
 
-        <div class="ui-field" v-if="form.category === 'services'">
-          <UiLabel html-for="expense-service-category">قسم الخدمات</UiLabel>
-          <UiSelect id="expense-service-category" v-model="form.service_category" required>
-            <option :value="null" disabled>اختر القسم</option>
-            <option v-for="cat in serviceCategoriesStore.items" :key="cat.id" :value="cat.id">
-              {{ cat.name }}
+        <div class="ui-field">
+          <UiLabel html-for="expense-category">التصنيف الفرعي</UiLabel>
+          <UiSelect
+            id="expense-category"
+            v-model="form.category"
+            :disabled="!form.main_category"
+            required
+          >
+            <option :value="null" disabled>اختر التصنيف الفرعي</option>
+            <option v-for="c in formCategories" :key="c.id" :value="c.id">
+              {{ c.name }}
+            </option>
+          </UiSelect>
+        </div>
+
+        <div class="ui-field">
+          <UiLabel html-for="expense-client">العميل (اختياري)</UiLabel>
+          <UiSelect id="expense-client" v-model="form.client">
+            <option :value="null">بدون عميل</option>
+            <option v-for="t in clientsStore.items" :key="t.id" :value="t.id">
+              {{ t.name }}
             </option>
           </UiSelect>
         </div>
@@ -371,9 +417,5 @@ onMounted(() => {
 .filter-actions {
   display: flex;
   gap: 0.5rem;
-}
-.service-badge {
-  font-size: 0.8em;
-  color: var(--text-muted);
 }
 </style>

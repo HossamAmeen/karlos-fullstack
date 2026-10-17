@@ -8,6 +8,8 @@ import InvoicesView from '@/views/InvoicesView.vue'
 import LoginView from '@/views/LoginView.vue'
 import ServiceCategoriesView from '@/views/ServiceCategoriesView.vue'
 import ServicesView from '@/views/ServicesView.vue'
+import ExpenseCategoriesView from '@/views/ExpenseCategoriesView.vue'
+import ExpenseMainCategoriesView from '@/views/ExpenseMainCategoriesView.vue'
 import ExpensesView from '@/views/ExpensesView.vue'
 
 const router = createRouter({
@@ -64,6 +66,16 @@ const router = createRouter({
       path: '/expenses',
       name: 'expenses',
       component: ExpensesView,
+    },
+    {
+      path: '/expense-main-categories',
+      name: 'expense-main-categories',
+      component: ExpenseMainCategoriesView,
+    },
+    {
+      path: '/expense-categories',
+      name: 'expense-categories',
+      component: ExpenseCategoriesView,
     },
   ],
 })

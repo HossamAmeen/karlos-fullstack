@@ -25,7 +25,7 @@ Before planning changes, read:
 - **Invoices** — draft → confirmed → cancelled; an invoice is **pieces** (e.g. glass `3×2`); each piece can carry **multiple services** with their own prices. `piece_subtotal` is one piece; `piece_total` is `piece_subtotal × piece.quantity`; invoice totals are server-authoritative. Line items denormalize `service_name` / `service_color` / `cost_method` / dimensions. `is_settled` marks fully paid invoices
 - **Payments / deposits** — money received from a client, optionally linked to a confirmed invoice; cannot exceed invoice `amount_remaining`
 - **Client statement** — charges (confirmed invoice totals) vs deposits (all payments); `balance_due = charged − deposits`
-- **Expenses** — tracking factory, salaries, and specific services expenses with dashboard summaries
+- **Expenses** — `ExpenseMainCategory` → `ExpenseCategory` → `Expense` (optional `Client`); categories are user-managed, summaries grouped dynamically by main category
 
 ### Payment rules (must not violate)
 
@@ -51,7 +51,7 @@ Before planning changes, read:
 - Vue 3 + Pinia + Vue Router; RTL Arabic UI
 - API clients under `src/api/`; stores call APIs
 - SPA flows without full page refresh where possible
-- Deploy version: bump `frontend/package.json` `version` (shown as `vX.Y.Z` on login + sidebar) so you can tell if a deploy includes latest changes; current frontend version is `0.0.4`
+- Deploy version: bump `frontend/package.json` `version` (shown as `vX.Y.Z` on login + sidebar) so you can tell if a deploy includes latest changes; current frontend version is `0.0.6`
 
 ## Local run (happy path)
 

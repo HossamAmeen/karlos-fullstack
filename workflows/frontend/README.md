@@ -26,7 +26,7 @@ Backend must already be running on port **8000**.
 
 ## Current UI scope
 
-- The SPA does not currently include a route or page for expense service categories.
+- Expenses live in a collapsible sidebar group: main categories, sub-categories, expenses (see `workflows/business/expenses.md`).
 - Keep that functionality out of frontend implementation work unless the product scope changes.
 
 ## App version

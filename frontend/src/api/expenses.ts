@@ -1,15 +1,16 @@
 import { apiFetch } from './client'
 
-export type ExpenseCategory = 'factory' | 'salaries' | 'services'
-
 export interface Expense {
   id: number
   amount: string
   description: string
   expense_date: string
-  category: ExpenseCategory
-  service_category: number | null
-  service_category_name: string | null
+  category: number
+  category_name: string
+  main_category: number
+  main_category_name: string
+  client: number | null
+  client_name: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -21,8 +22,8 @@ export interface ExpensePayload {
   amount: string
   description: string
   expense_date: string
-  category: ExpenseCategory
-  service_category: number | null
+  category: number
+  client: number | null
 }
 
 export interface PaginatedExpenses {
@@ -34,59 +35,48 @@ export interface PaginatedExpenses {
 
 export interface ExpensesSummary {
   total_expenses: number
-  total_factory: number
-  total_salaries: number
-  total_services: number
+  by_main_category: {
+    main_category: number
+    main_category_name: string
+    total: number
+  }[]
+}
+
+export interface ExpenseFilters {
+  search?: string
+  date?: string
+  start_date?: string
+  end_date?: string
+  main_category?: number
+  category?: number
+  client?: number
+}
+
+function filtersQuery(params: ExpenseFilters) {
+  const query = new URLSearchParams()
+  if (params.search) query.set('search', params.search)
+  if (params.date) query.set('date', params.date)
+  if (params.start_date) query.set('start_date', params.start_date)
+  if (params.end_date) query.set('end_date', params.end_date)
+  if (params.main_category != null) query.set('main_category', String(params.main_category))
+  if (params.category != null) query.set('category', String(params.category))
+  if (params.client != null) query.set('client', String(params.client))
+  return query
 }
 
 export function listExpenses(
-  params: {
-    search?: string
-    date?: string
-    start_date?: string
-    end_date?: string
-    category?: string
-    service_category?: number
-    limit?: number
-    offset?: number
-  } = {},
+  params: ExpenseFilters & { limit?: number; offset?: number } = {},
 ) {
-  const query = new URLSearchParams()
-  if (params.search) query.set('search', params.search)
-  if (params.date) query.set('date', params.date)
-  if (params.start_date) query.set('start_date', params.start_date)
-  if (params.end_date) query.set('end_date', params.end_date)
-  if (params.category) query.set('category', params.category)
-  if (params.service_category != null) {
-    query.set('service_category', String(params.service_category))
-  }
+  const query = filtersQuery(params)
   query.set('limit', String(params.limit ?? 100))
   query.set('offset', String(params.offset ?? 0))
-  const qs = query.toString()
-  return apiFetch<PaginatedExpenses>(`/api/v1/expenses/?${qs}`)
+  return apiFetch<PaginatedExpenses>(`/api/v1/expenses/?${query.toString()}`)
 }
 
-export function getExpensesSummary(
-  params: {
-    search?: string
-    date?: string
-    start_date?: string
-    end_date?: string
-    category?: string
-    service_category?: number
-  } = {},
-) {
-  const query = new URLSearchParams()
-  if (params.search) query.set('search', params.search)
-  if (params.date) query.set('date', params.date)
-  if (params.start_date) query.set('start_date', params.start_date)
-  if (params.end_date) query.set('end_date', params.end_date)
-  if (params.category) query.set('category', params.category)
-  if (params.service_category != null) {
-    query.set('service_category', String(params.service_category))
-  }
-  const qs = query.toString()
-  return apiFetch<ExpensesSummary>(`/api/v1/expenses/summary/?${qs}`)
+export function getExpensesSummary(params: ExpenseFilters = {}) {
+  return apiFetch<ExpensesSummary>(
+    `/api/v1/expenses/summary/?${filtersQuery(params).toString()}`,
+  )
 }
 
 export function createExpense(payload: ExpensePayload) {

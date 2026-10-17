@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
 import UiButton from '@/components/ui/UiButton.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -8,14 +8,28 @@ import { APP_VERSION } from '@/version'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const navItems = [
   { name: 'clients', to: '/clients', label: 'العملاء' },
   { name: 'service-categories', to: '/service-categories', label: 'الخدمات الرئيسية' },
   { name: 'services', to: '/services', label: 'الخدمات' },
   { name: 'invoices', to: '/invoices', label: 'الفواتير' },
+] as const
+
+const expenseNavItems = [
+  { name: 'expense-main-categories', to: '/expense-main-categories', label: 'الرئيسية' },
+  { name: 'expense-categories', to: '/expense-categories', label: 'الفرعية' },
   { name: 'expenses', to: '/expenses', label: 'المصروفات' },
 ] as const
+
+const expensesOpen = ref(expenseNavItems.some((i) => i.name === route.name))
+watch(
+  () => route.name,
+  (name) => {
+    if (expenseNavItems.some((i) => i.name === name)) expensesOpen.value = true
+  },
+)
 
 async function onLogout() {
   auth.logout()
@@ -42,6 +56,27 @@ async function onLogout() {
           >
             {{ item.label }}
           </RouterLink>
+
+          <button
+            type="button"
+            class="nav-link nav-group-toggle"
+            :aria-expanded="expensesOpen"
+            @click="expensesOpen = !expensesOpen"
+          >
+            <span>المصروفات</span>
+            <span class="chevron" :class="{ open: expensesOpen }" aria-hidden="true">▾</span>
+          </button>
+          <div v-show="expensesOpen" class="nav-sub">
+            <RouterLink
+              v-for="item in expenseNavItems"
+              :key="item.name"
+              :to="item.to"
+              class="nav-link"
+              exact-active-class="nav-link-active"
+            >
+              {{ item.label }}
+            </RouterLink>
+          </div>
         </nav>
       </div>
 
@@ -116,6 +151,34 @@ async function onLogout() {
   font-weight: 600;
   font-size: 0.925rem;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.nav-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: start;
+}
+
+.chevron {
+  transition: transform 0.15s ease;
+}
+
+.chevron.open {
+  transform: rotate(180deg);
+}
+
+.nav-sub {
+  display: grid;
+  gap: 0.35rem;
+  margin-inline-start: 0.75rem;
+  padding-inline-start: 0.5rem;
+  border-inline-start: 1px solid hsl(var(--border));
 }
 
 .nav-link:hover {
