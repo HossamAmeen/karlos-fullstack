@@ -23,7 +23,14 @@ const expenseNavItems = [
   { name: 'expenses', to: '/expenses', label: 'المصروفات' },
 ] as const
 
+const menuOpen = ref(false)
 const expensesOpen = ref(expenseNavItems.some((i) => i.name === route.name))
+watch(
+  () => route.fullPath,
+  () => {
+    menuOpen.value = false
+  },
+)
 watch(
   () => route.name,
   (name) => {
@@ -39,11 +46,22 @@ async function onLogout() {
 
 <template>
   <div class="app-shell" dir="rtl" :class="{ auth: auth.isAuthenticated }">
-    <aside v-if="auth.isAuthenticated" class="sidebar">
+    <aside v-if="auth.isAuthenticated" class="sidebar" :class="{ open: menuOpen }">
       <div class="sidebar-top">
         <div class="brand">
-          <p class="brand-title">لوحة التحكم</p>
-          <p class="brand-subtitle">لوحة المحترف</p>
+          <div>
+            <p class="brand-title">لوحة التحكم</p>
+            <p class="brand-subtitle">لوحة المحترف</p>
+          </div>
+          <button
+            type="button"
+            class="menu-toggle"
+            :aria-expanded="menuOpen"
+            aria-label="القائمة"
+            @click="menuOpen = !menuOpen"
+          >
+            {{ menuOpen ? '✕' : '☰' }}
+          </button>
         </div>
 
         <nav class="nav" aria-label="التنقل الرئيسي">
@@ -119,7 +137,23 @@ async function onLogout() {
   border-left: 1px solid hsl(var(--sidebar-border));
 }
 
+.menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  font-size: 1.1rem;
+}
+
 .brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.25rem 0.5rem 1.5rem;
   border-bottom: 1px solid hsl(var(--border));
   margin-bottom: 1rem;
@@ -235,6 +269,15 @@ async function onLogout() {
 }
 
 @media (max-width: 900px) {
+  .menu-toggle {
+    display: inline-flex;
+  }
+
+  .sidebar:not(.open) .nav,
+  .sidebar:not(.open) .sidebar-bottom {
+    display: none;
+  }
+
   .sidebar {
     position: sticky;
     width: 100%;
@@ -267,6 +310,12 @@ async function onLogout() {
   .app-shell.auth .content {
     margin-right: 0;
     width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 1rem 0.75rem;
   }
 }
 </style>

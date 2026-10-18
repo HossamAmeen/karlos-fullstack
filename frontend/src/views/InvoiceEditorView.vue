@@ -1288,30 +1288,27 @@ watch(
             </p>
           </div>
 
-          <!-- 2. المقاسات بناءً على الخدمة المحددة (أو باقي الخدمات المضافة للقطعة) -->
-          <div
-            v-if="draftNeedsDimensions || (selectedService && needsDimensions(selectedService.cost_method))"
-            class="grid"
-          >
-            <div v-if="draftNeedsTwoDimensions || (selectedService && needsTwoDimensions(selectedService.cost_method))">
+          <!-- 2. نتيجة المقاس (قابلة للتعديل وتُستخدم في حساب السعر) -->
+          <div class="grid">
+            <div>
               <UiLabel>الطول (x)</UiLabel>
               <UiInput
                 v-model="pieceForm.length"
                 type="number"
                 min="0"
                 step="0.001"
-                placeholder="أدخل الطول"
+                placeholder="الطول"
                 @input="updateCalculatedPrices('dims')"
               />
             </div>
-            <div v-if="draftNeedsDimensions || (selectedService && needsDimensions(selectedService.cost_method))">
-              <UiLabel>{{ (selectedService && needsOneDimension(selectedService.cost_method)) || (draftNeedsOneDimension && !draftNeedsTwoDimensions) ? 'البعد / العرض (x)' : 'العرض (y)' }}</UiLabel>
+            <div>
+              <UiLabel>العرض (y)</UiLabel>
               <UiInput
                 v-model="pieceForm.width"
                 type="number"
                 min="0"
                 step="0.001"
-                placeholder="أدخل العرض / البعد"
+                placeholder="العرض"
                 @input="updateCalculatedPrices('dims')"
               />
             </div>
