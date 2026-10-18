@@ -20,3 +20,18 @@ deploy:
 
 deploy-sh:
 	./deploy.sh $(ENV)
+
+restart:
+	python3 restart.py $(ENV)
+
+logs-service:
+	python3 logs.py service $(ENV) -n $(or $(N),100)
+
+logs-service-follow:
+	python3 logs.py service $(ENV) -f
+
+logs-nginx:
+	python3 logs.py nginx $(ENV) -n $(or $(N),100)
+
+logs-nginx-follow:
+	python3 logs.py nginx $(ENV) -f

@@ -2,3 +2,4 @@
 
 /deploy/venv
 /deploy/__pycache__
+/deploy/config.yml
