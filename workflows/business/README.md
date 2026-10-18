@@ -13,6 +13,7 @@ Backend and frontend workflows both follow this folder. Do not invent field rule
 | [clients.md](./clients.md) | Client entity + CRUD + statement/deposits |
 | [services.md](./services.md) | ServiceCategory + Service entities + CRUD |
 | [invoices.md](./invoices.md) | Invoices, pieces (multi-service), payments, client balance |
+| [health.md](./health.md) | Public health check endpoint |
 
 ## System overview
 

@@ -168,24 +168,28 @@ def prepare_dirs(srv, cfg):
 _synced = set()
 
 
-def git_sync(srv, remote_path, git_url, branch):
+def git_sync(srv, remote_path, git_url, branch, only_dir=None):
     """Clone on first run, `git pull` afterwards. A repo shared by the frontend and
-    the backend (same folder, URL and branch) is only synced once."""
+    the backend (same folder, URL and branch) is only synced once. With only_dir,
+    every other top-level folder of the repo is left out (git sparse-checkout)."""
     key = (remote_path, git_url, branch)
     if key in _synced:
         print(f"  {remote_path} is shared with the other project: already up to date")
         return
     _synced.add(key)
     path, url, br = shlex.quote(remote_path), shlex.quote(git_url), shlex.quote(branch)
+    sparse = f"git sparse-checkout set {shlex.quote(only_dir)}" if only_dir else ":"
     srv.run(f"""
 cd {path}
 if [ ! -d .git ]; then
     git init -q
     git remote add origin {url}
+    {sparse}
     git fetch -q origin {br}
     git checkout -q -f -B {br} origin/{br}
 else
     git remote set-url origin {url}
+    {sparse}
     git checkout -q {br}
     git pull --ff-only origin {br}
 fi
@@ -219,7 +223,8 @@ def deploy_frontend(srv, cfg, docker):
     conf = f"/etc/nginx/conf.d/{be['service_name']}-frontend.conf"
 
     step(f"Updating frontend from git ({fe['git_url']})")
-    git_sync(srv, fe["remote_path"], fe["git_url"], fe.get("branch", "main"))
+    git_sync(srv, fe["remote_path"], fe["git_url"], fe.get("branch", "main"),
+             only_dir=None if docker else fe.get("subdir"))
 
     if docker:
         step(f"Starting frontend with docker compose (VITE_API_URL={api_url})")

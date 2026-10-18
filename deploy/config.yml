@@ -12,7 +12,7 @@ staging:
     branch: main
     remote_path: /var/www/karlos   # checkout on the server (without docker nginx serves <remote_path>/dist)
     # Same repo for front and back? Use the same git_url + remote_path in both sections and set subdir:
-    subdir: front                                  # folder of the Vue project inside the repo
+    subdir: frontend                               # folder of the Vue project inside the repo; all other repo folders are removed
     web_root: /var/www/html/karlos/staging       # nginx serves this folder, it holds only the built dist
     port: 8080                       # docker only: local port of the frontend container
     dockerfile: docker/staging/Dockerfile           # docker only: path inside the repo
@@ -46,7 +46,7 @@ production:
     branch: main
     remote_path: /var/www/app
     # Same repo for front and back? Use the same git_url + remote_path in both sections and set subdir:
-    # subdir: front                                  # folder of the Vue project inside the repo
+    # subdir: frontend                               # folder of the Vue project inside the repo; all other repo folders are removed
     # web_root: /var/www/html/project/production       # nginx serves this folder, it holds only the built dist
     port: 8080
     dockerfile: docker/production/Dockerfile

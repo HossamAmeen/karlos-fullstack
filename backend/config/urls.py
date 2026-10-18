@@ -30,6 +30,7 @@ urlpatterns = [
         name="redoc",
     ),
     # Local apps
+    path("api/v1/", include("apps.core.urls")),
     path("api/v1/", include("apps.clients.urls")),
     path("api/v1/", include("apps.services.urls")),
     path("api/v1/", include("apps.invoices.urls")),
