@@ -7,7 +7,7 @@ staging:
   ssl_email: hosamameen948@gmail.com         # required when ssl: true
 
   frontend:
-    domain: karlos.hossam-ameen.online
+    domain: karlos-front.hossam-ameen.online
     git_url: https://github.com/HossamAmeen/karlos-fullstack.git
     branch: main
     remote_path: /var/www/karlos   # checkout on the server (without docker nginx serves <remote_path>/dist)
@@ -24,12 +24,12 @@ staging:
     git_url: https://github.com/HossamAmeen/karlos-fullstack.git
     branch: main
     remote_path: /opt/karlos/staging
-    # subdir: back                                    # folder of the Django project inside the repo
+    subdir: backend                                    # folder of the Django project inside the repo
     service_name: deployed-backend   # systemd service name (docker: compose project name)
     port: 8001                       # local port the backend listens on
     dockerfile: docker/staging/Dockerfile           # docker only: path inside the repo
     compose_file: docker/staging/docker-compose.yml # docker only: path inside the repo
-    requirements_path: requirements/requirements.txt   # pip requirements file, relative to the backend repo (not used with docker)
+    requirements_path: requirements/production.txt   # pip requirements file, relative to the backend repo (not used with docker)
     wsgi_module: config.wsgi:application  # not used with docker (set in the backend Dockerfile)
 
 production:
@@ -46,7 +46,7 @@ production:
     branch: main
     remote_path: /var/www/app
     # Same repo for front and back? Use the same git_url + remote_path in both sections and set subdir:
-    # subdir: frontend                               # folder of the Vue project inside the repo; all other repo folders are removed
+    subdir: frontend                               # folder of the Vue project inside the repo; all other repo folders are removed
     # web_root: /var/www/html/project/production       # nginx serves this folder, it holds only the built dist
     port: 8080
     dockerfile: docker/production/Dockerfile
