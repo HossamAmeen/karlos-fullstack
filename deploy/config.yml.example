@@ -28,7 +28,7 @@ staging:
     service_name: deployed-backend   # systemd service name (docker: compose project name)
     port: 8001                       # local port the backend listens on
     workers: 2                       # gunicorn worker processes
-    static_url: /static/             # URL prefix of Django static files (served by nginx from <backend>/staticfiles; not used with docker)
+    static_url: /staticfiles/             # URL prefix of Django static files (served by nginx from <backend>/staticfiles; not used with docker)
     media_url: /media/               # URL prefix of uploaded media files (served by nginx from <backend>/media; not used with docker)
     dockerfile: docker/staging/Dockerfile           # docker only: path inside the repo
     compose_file: docker/staging/docker-compose.yml # docker only: path inside the repo

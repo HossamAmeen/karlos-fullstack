@@ -563,6 +563,11 @@ def print_paths(cfg, docker):
         rows.append(("Backend containers", f"docker compose project '{name}'"))
     else:
         rows += [("Backend service", f"{name}  (/etc/systemd/system/{name}.service)")]
+    opts = backend_settings(be, docker)
+    rows += [
+        ("Static URL -> folder", f"{opts['static_url']}  ->  {opts['static_root']}"),
+        ("Media URL -> folder", f"{opts['media_url']}  ->  {opts['media_root']}"),
+    ]
     rows += [
         ("nginx frontend conf", f"/etc/nginx/conf.d/{name}-frontend.conf"),
         ("nginx backend conf", f"/etc/nginx/conf.d/{name}-backend.conf"),

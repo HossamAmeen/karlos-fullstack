@@ -96,9 +96,20 @@ async function onDelete(item: ExpenseCategory) {
   }
 }
 
-onMounted(() => {
-  store.fetchMainCategories().catch(handleAuthError)
+function selectMain(id: number) {
+  mainFilter.value = id
   void reload()
+}
+
+onMounted(async () => {
+  try {
+    await store.fetchMainCategories()
+  } catch (err) {
+    await handleAuthError(err)
+    return
+  }
+  const first = store.mainCategories[0]
+  if (first) selectMain(first.id)
 })
 </script>
 
@@ -112,17 +123,16 @@ onMounted(() => {
       <UiButton @click="openCreate">تصنيف فرعي جديد</UiButton>
     </header>
 
-    <UiCard class="filter-card">
-      <div class="ui-field">
-        <UiLabel>التصنيف الرئيسي</UiLabel>
-        <UiSelect v-model="mainFilter" @change="reload">
-          <option :value="null">الكل</option>
-          <option v-for="m in store.mainCategories" :key="m.id" :value="m.id">
-            {{ m.name }}
-          </option>
-        </UiSelect>
-      </div>
-    </UiCard>
+    <div class="main-tabs">
+      <UiButton
+        v-for="m in store.mainCategories"
+        :key="m.id"
+        :variant="mainFilter === m.id ? 'default' : 'outline'"
+        @click="selectMain(m.id)"
+      >
+        {{ m.name }}
+      </UiButton>
+    </div>
 
     <p v-if="store.error" class="ui-error">{{ store.error }}</p>
 
@@ -190,12 +200,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.filter-card {
+.main-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
-  padding: 1rem 1.5rem;
-}
-.filter-card .ui-field {
-  margin-bottom: 0;
-  max-width: 20rem;
 }
 </style>
