@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import connection
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -22,4 +23,6 @@ class HealthView(APIView):
                 {"status": "error", "database": "unavailable"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
-        return Response({"status": "ok", "database": "ok"})
+        return Response(
+            {"status": "ok", "database": "ok", "version": settings.APP_VERSION}
+        )

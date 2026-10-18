@@ -20,6 +20,9 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
+
+# Bump on each backend release; returned by GET /api/health/
+APP_VERSION = "2"
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 # ---------------------------------------------------------------------------

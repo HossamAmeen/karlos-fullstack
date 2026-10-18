@@ -9,7 +9,7 @@ class HealthApiTests(APITestCase):
     def test_health_is_public(self) -> None:
         response = self.client.get(reverse("health"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {"status": "ok", "database": "ok"})
+        self.assertEqual(response.data, {"status": "ok", "database": "ok", "version": "2"})
 
     def test_health_reports_database_failure(self) -> None:
         with patch("apps.core.views.connection.cursor", side_effect=Exception("down")):
