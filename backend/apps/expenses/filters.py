@@ -18,10 +18,11 @@ class ExpenseMainCategoryFilter(django_filters.FilterSet):
 class ExpenseCategoryFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr="icontains")
     main_category = django_filters.NumberFilter(field_name="main_category_id")
+    is_shown = django_filters.BooleanFilter()
 
     class Meta:
         model = ExpenseCategory
-        fields = ["name", "main_category"]
+        fields = ["name", "main_category", "is_shown"]
 
 
 class ExpenseFilter(django_filters.FilterSet):

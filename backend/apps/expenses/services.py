@@ -47,12 +47,16 @@ class ExpenseCategoryService:
         *,
         main_category: ExpenseMainCategory,
         name: str,
+        order_number: int = 0,
+        is_shown: bool = True,
         created_by: Any = None,
         updated_by: Any = None,
     ) -> ExpenseCategory:
         return ExpenseCategory.objects.create(
             main_category=main_category,
             name=name.strip(),
+            order_number=order_number,
+            is_shown=is_shown,
             created_by=created_by,
             updated_by=updated_by if updated_by is not None else created_by,
         )
@@ -63,14 +67,25 @@ class ExpenseCategoryService:
         category: ExpenseCategory,
         main_category: ExpenseMainCategory,
         name: str,
+        order_number: int = 0,
+        is_shown: bool = True,
         updated_by: Any = None,
     ) -> ExpenseCategory:
         category.main_category = main_category
         category.name = name.strip()
+        category.order_number = order_number
+        category.is_shown = is_shown
         if updated_by is not None:
             category.updated_by = updated_by
         category.save(
-            update_fields=["main_category", "name", "updated_by", "updated_at"]
+            update_fields=[
+                "main_category",
+                "name",
+                "order_number",
+                "is_shown",
+                "updated_by",
+                "updated_at",
+            ]
         )
         return category
 

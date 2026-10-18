@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.db.models import QuerySet, Sum
+from django.db.models import Count, Q, QuerySet, Sum
 
 from apps.expenses.filters import ExpenseFilter
 from apps.expenses.models import (
@@ -15,7 +15,15 @@ def get_main_categories() -> QuerySet[ExpenseMainCategory]:
 
 
 def get_categories() -> QuerySet[ExpenseCategory]:
-    return ExpenseCategory.objects.select_related("main_category").all()
+    return (
+        ExpenseCategory.objects.select_related("main_category")
+        .annotate(
+            expenses_count=Count(
+                "expenses", filter=Q(expenses__deleted_at__isnull=True)
+            )
+        )
+        .all()
+    )
 
 
 def get_expenses(*, filters: dict[str, Any] | None = None) -> QuerySet[Expense]:

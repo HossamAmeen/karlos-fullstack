@@ -44,8 +44,8 @@ class ExpenseCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = ExpenseCategorySerializer
     filterset_class = ExpenseCategoryFilter
     search_fields = ["name", "main_category__name"]
-    ordering_fields = ["id", "name", "created_at", "updated_at"]
-    ordering = ["main_category__name", "name", "id"]
+    ordering_fields = ["id", "name", "order_number", "created_at", "updated_at"]
+    ordering = ["main_category__name", "order_number", "name", "id"]
 
     def get_queryset(self):
         return get_categories()

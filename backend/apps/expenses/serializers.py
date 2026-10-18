@@ -68,11 +68,30 @@ class ExpenseCategorySerializer(BaseModelSerializer):
     main_category_name = serializers.CharField(
         source="main_category.name", read_only=True
     )
+    expenses_count = serializers.SerializerMethodField()
 
     class Meta:
         model = ExpenseCategory
-        fields = ("id", "main_category", "main_category_name", "name", *AUDIT_FIELDS)
-        read_only_fields = ("id", "main_category_name", *AUDIT_FIELDS)
+        fields = (
+            "id",
+            "main_category",
+            "main_category_name",
+            "name",
+            "order_number",
+            "is_shown",
+            "expenses_count",
+            *AUDIT_FIELDS,
+        )
+        read_only_fields = (
+            "id",
+            "main_category_name",
+            "expenses_count",
+            *AUDIT_FIELDS,
+        )
+
+    def get_expenses_count(self, obj: ExpenseCategory) -> int:
+        count = getattr(obj, "expenses_count", None)
+        return count if count is not None else obj.expenses.count()
 
     def validate_name(self, value: str) -> str:
         value = value.strip()
@@ -99,6 +118,8 @@ class ExpenseCategorySerializer(BaseModelSerializer):
         return ExpenseCategoryService.create(
             main_category=validated_data["main_category"],
             name=validated_data["name"],
+            order_number=validated_data.get("order_number", 0),
+            is_shown=validated_data.get("is_shown", True),
             created_by=validated_data.get("created_by"),
             updated_by=validated_data.get("updated_by"),
         )
@@ -109,6 +130,8 @@ class ExpenseCategorySerializer(BaseModelSerializer):
             category=instance,
             main_category=validated_data.get("main_category", instance.main_category),
             name=validated_data.get("name", instance.name),
+            order_number=validated_data.get("order_number", instance.order_number),
+            is_shown=validated_data.get("is_shown", instance.is_shown),
             updated_by=validated_data.get("updated_by"),
         )
 

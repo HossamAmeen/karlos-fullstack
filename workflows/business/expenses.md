@@ -22,8 +22,11 @@ All models inherit audit fields + soft delete from `BaseModel`.
 | main_category | integer (FK) | required |
 | main_category_name | string | read-only |
 | name | string | required, unique per main category among active rows |
+| order_number | integer | default 0; sorts the filter buttons on the expenses page |
+| is_shown | boolean | default true; whether the category appears as a filter button on the expenses page |
+| expenses_count | integer | read-only, number of active expenses |
 
-Filters: `main_category`, `name`; search on name / main category name.
+Filters: `main_category`, `name`, `is_shown`; search on name / main category name.
 
 ### Expense (`/api/v1/expenses/`)
 

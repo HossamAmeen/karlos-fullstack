@@ -22,11 +22,18 @@ const editingId = ref<number | null>(null)
 const formError = ref<string | null>(null)
 const saving = ref(false)
 const mainFilter = ref<number | null>(null)
-const form = reactive({ name: '', main_category: null as number | null })
+const form = reactive({
+  name: '',
+  main_category: null as number | null,
+  order_number: 0,
+  is_shown: true,
+})
 
 function resetForm() {
   editingId.value = null
   form.name = ''
+  form.order_number = 0
+  form.is_shown = true
   form.main_category = mainFilter.value
   formError.value = null
 }
@@ -39,6 +46,8 @@ function openCreate() {
 function openEdit(item: ExpenseCategory) {
   editingId.value = item.id
   form.name = item.name
+  form.order_number = item.order_number
+  form.is_shown = item.is_shown
   form.main_category = item.main_category
   formError.value = null
   dialogOpen.value = true
@@ -72,7 +81,12 @@ async function onSubmit() {
   }
   saving.value = true
   try {
-    const payload = { name: form.name.trim(), main_category: form.main_category }
+    const payload = {
+      name: form.name.trim(),
+      main_category: form.main_category,
+      order_number: Number(form.order_number) || 0,
+      is_shown: form.is_shown,
+    }
     if (editingId.value) await store.updateCategory(editingId.value, payload)
     else await store.createCategory(payload)
     closeDialog()
@@ -143,19 +157,23 @@ onMounted(async () => {
             <tr>
               <th>الاسم</th>
               <th>التصنيف الرئيسي</th>
+              <th>الترتيب</th>
+              <th>يظهر في المصروفات</th>
               <th>إجراءات</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="3" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="5" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="store.categories.length === 0">
-              <td colspan="3" class="ui-empty">لا توجد تصنيفات فرعية.</td>
+              <td colspan="5" class="ui-empty">لا توجد تصنيفات فرعية.</td>
             </tr>
             <tr v-for="item in store.categories" :key="item.id">
               <td>{{ item.name }}</td>
               <td>{{ item.main_category_name }}</td>
+              <td>{{ item.order_number }}</td>
+              <td>{{ item.is_shown ? 'نعم' : 'لا' }}</td>
               <td>
                 <div class="row-actions">
                   <UiButton variant="outline" size="sm" @click="openEdit(item)">تعديل</UiButton>
@@ -187,6 +205,16 @@ onMounted(async () => {
           <UiLabel html-for="cat-name">الاسم</UiLabel>
           <UiInput id="cat-name" v-model="form.name" required />
         </div>
+        <div class="ui-field">
+          <UiLabel html-for="cat-order">رقم الترتيب</UiLabel>
+          <UiInput id="cat-order" v-model="form.order_number" type="number" min="0" />
+        </div>
+        <div class="ui-field">
+          <label class="shown-check">
+            <input v-model="form.is_shown" type="checkbox" />
+            إظهار في صفحة المصروفات
+          </label>
+        </div>
         <p v-if="formError" class="ui-error">{{ formError }}</p>
         <div class="ui-dialog-footer">
           <UiButton type="submit" :disabled="saving">
@@ -200,6 +228,12 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.shown-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
 .main-tabs {
   display: flex;
   flex-wrap: wrap;

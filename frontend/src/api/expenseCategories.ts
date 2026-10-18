@@ -26,6 +26,9 @@ export interface ExpenseCategory extends Audit {
   main_category: number
   main_category_name: string
   name: string
+  order_number: number
+  is_shown: boolean
+  expenses_count: number
 }
 
 export interface ExpenseMainCategoryPayload {
@@ -35,6 +38,8 @@ export interface ExpenseMainCategoryPayload {
 export interface ExpenseCategoryPayload {
   main_category: number
   name: string
+  order_number: number
+  is_shown: boolean
 }
 
 function listQuery(params: Record<string, string | number | undefined>) {

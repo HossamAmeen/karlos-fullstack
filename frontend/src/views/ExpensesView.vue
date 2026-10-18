@@ -46,6 +46,16 @@ const filterCategories = computed(() =>
       expenses.mainCategoryFilter == null || c.main_category === expenses.mainCategoryFilter,
   ),
 )
+const categoryButtons = computed(() =>
+  filterCategories.value
+    .filter((c) => c.is_shown)
+    .sort((a, b) => a.order_number - b.order_number || a.name.localeCompare(b.name)),
+)
+
+function selectCategory(id: number | null) {
+  expenses.categoryFilter = id
+  applyFilters()
+}
 
 watch(
   () => form.main_category,
@@ -161,6 +171,7 @@ async function onSubmit() {
     } else {
       await expenses.create(payload)
     }
+    void lookups.fetchCategories()
     closeDialog()
   } catch (err) {
     await handleAuthError(err)
@@ -179,6 +190,7 @@ async function onDelete(expense: Expense) {
 
   try {
     await expenses.remove(expense.id)
+    void lookups.fetchCategories()
     if (editingId.value === expense.id) closeDialog()
   } catch (err) {
     await handleAuthError(err)
@@ -213,6 +225,23 @@ onMounted(() => {
         <h3>{{ row.main_category_name }}</h3>
         <div class="summary-value">{{ row.total }}</div>
       </UiCard>
+    </div>
+
+    <div class="category-tabs">
+      <UiButton
+        :variant="expenses.categoryFilter == null ? 'default' : 'outline'"
+        @click="selectCategory(null)"
+      >
+        الكل
+      </UiButton>
+      <UiButton
+        v-for="c in categoryButtons"
+        :key="c.id"
+        :variant="expenses.categoryFilter === c.id ? 'default' : 'outline'"
+        @click="selectCategory(c.id)"
+      >
+        {{ c.name }} ({{ c.expenses_count }})
+      </UiButton>
     </div>
 
     <UiCard class="filter-card">
@@ -380,6 +409,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

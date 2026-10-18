@@ -30,9 +30,11 @@ class ExpenseCategory(BaseModel):
         related_name="categories",
     )
     name = models.CharField(max_length=255)
+    order_number = models.PositiveIntegerField(default=0)
+    is_shown = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ["main_category__name", "name", "id"]
+        ordering = ["main_category__name", "order_number", "name", "id"]
         verbose_name = "Expense category"
         verbose_name_plural = "Expense categories"
         constraints = [
