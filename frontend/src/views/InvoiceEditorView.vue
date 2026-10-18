@@ -66,6 +66,30 @@ const pieceForm = reactive({
   quantity: '1',
 })
 
+const dimExpr = ref('')
+
+function parseDimExpr(expr: string): { length: string; width: string } {
+  const parts = expr
+    .split(/[*x×X]/)
+    .map((part) => part.trim().replace(',', '.'))
+    .filter((part) => part !== '' && Number.isFinite(Number(part)))
+  if (parts.length >= 2) return { length: parts[0], width: parts[1] }
+  if (parts.length === 1) return { length: '', width: parts[0] }
+  return { length: '', width: '' }
+}
+
+watch(dimExpr, (expr) => {
+  const { length, width } = parseDimExpr(expr)
+  pieceForm.length = length
+  pieceForm.width = width
+})
+
+function selectCategory(id: number) {
+  if (Number(itemForm.category) === id) return
+  itemForm.category = id
+  resetServicePicker()
+}
+
 const itemForm = reactive({
   category: '' as string | number,
   service: '' as string | number,
@@ -322,6 +346,7 @@ function resetServicePicker() {
 }
 
 function resetPieceForm() {
+  dimExpr.value = ''
   pieceForm.length = ''
   pieceForm.width = ''
   pieceForm.quantity = '1'
@@ -726,9 +751,6 @@ async function removePiece(pieceId: number) {
 async function loadLookups() {
   await Promise.all([clients.fetchAll(), categories.fetchAll(), services.fetchAll()])
   if (!header.client && clients.items[0]) header.client = clients.items[0].id
-  if (!itemForm.category && availableCategories.value[0]) {
-    itemForm.category = availableCategories.value[0].id
-  }
   if (!extraForm.category && availableCategories.value[0]) {
     extraForm.category = availableCategories.value[0].id
   }
@@ -1107,7 +1129,7 @@ watch(
                 </div>
                 <div v-if="showExtraDimensionInputs" class="grid">
                   <div v-if="showExtraTwoDimensions">
-                    <UiLabel>الطول (x)</UiLabel>
+                    <UiLabel>الطول (x) — محسوب من المقاس</UiLabel>
                     <UiInput
                       v-model="extraForm.length"
                       type="number"
@@ -1215,31 +1237,55 @@ watch(
           <h3>إضافة قطعة / خدمة</h3>
           <p class="hint">اختر الخدمة أولاً، ثم أدخل المقاسات أو الكمية والسعر.</p>
 
-          <!-- 1. الخدمة والتصنيف أولاً -->
+          <!-- 0. المقاس كتعبير (مثل 5*9) -->
           <div class="grid">
             <div>
-              <UiLabel>تصنيف (فلتر)</UiLabel>
-              <UiSelect v-model="itemForm.category">
-                <option value="">الكل</option>
-                <option v-for="cat in availableCategories" :key="cat.id" :value="cat.id">
-                  {{ cat.name }}
-                </option>
-              </UiSelect>
+              <UiLabel>المقاس (مثال: 5*9)</UiLabel>
+              <UiInput
+                v-model="dimExpr"
+                inputmode="decimal"
+                dir="ltr"
+                placeholder="5*9"
+              />
             </div>
-            <div>
-              <UiLabel>الخدمة</UiLabel>
-              <UiSelect v-model="itemForm.service">
-                <option disabled value="">اختر خدمة</option>
-                <option v-for="s in filteredServices" :key="s.id" :value="s.id">
-                  {{ s.name }} — {{ measureLabel(s) }}
-                </option>
-              </UiSelect>
-              <p v-if="selectedService" class="service-meta">
-                <span class="pill" :data-fixed="isFixedCost(selectedService)">
-                  {{ isFixedCost(selectedService) ? 'سعر ثابت' : 'سعر غير ثابت' }}
-                </span>
-              </p>
+          </div>
+
+          <!-- 1. التصنيفات ثم الخدمات كمربعات -->
+          <div>
+            <UiLabel>التصنيف</UiLabel>
+            <div class="box-list">
+              <button
+                v-for="cat in availableCategories"
+                :key="cat.id"
+                type="button"
+                class="pick-box"
+                :data-active="Number(itemForm.category) === cat.id"
+                @click="selectCategory(cat.id)"
+              >
+                {{ cat.name }}
+              </button>
             </div>
+          </div>
+          <div v-if="itemForm.category !== ''">
+            <UiLabel>الخدمة</UiLabel>
+            <div class="box-list">
+              <button
+                v-for="s in filteredServices"
+                :key="s.id"
+                type="button"
+                class="pick-box"
+                :data-active="Number(itemForm.service) === s.id"
+                @click="itemForm.service = s.id"
+              >
+                <strong>{{ s.name }}</strong>
+                <small>{{ measureLabel(s) }}</small>
+              </button>
+            </div>
+            <p v-if="selectedService" class="service-meta">
+              <span class="pill" :data-fixed="isFixedCost(selectedService)">
+                {{ isFixedCost(selectedService) ? 'سعر ثابت' : 'سعر غير ثابت' }}
+              </span>
+            </p>
           </div>
 
           <!-- 2. المقاسات بناءً على الخدمة المحددة (أو باقي الخدمات المضافة للقطعة) -->
@@ -1618,6 +1664,38 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+.box-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.pick-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-width: 6rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  background: hsl(var(--background));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.pick-box small {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+.pick-box[data-active='true'] {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.pick-box[data-active='true'] small {
+  color: inherit;
 }
 .hint {
   margin: 0;
