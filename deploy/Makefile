@@ -30,6 +30,12 @@ logs-service:
 logs-service-follow:
 	python3 logs.py service $(ENV) -f
 
+errors:
+	python3 logs.py service $(ENV) -e -n $(or $(N),100)
+
+errors-nginx:
+	python3 logs.py nginx $(ENV) -e -n $(or $(N),100)
+
 logs-nginx:
 	python3 logs.py nginx $(ENV) -n $(or $(N),100)
 

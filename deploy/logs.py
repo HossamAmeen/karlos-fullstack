@@ -15,6 +15,7 @@ def main():
     parser.add_argument("environment", nargs="?", choices=deploy.ENVIRONMENTS, default="staging")
     parser.add_argument("-n", "--lines", type=int, default=100)
     parser.add_argument("-f", "--follow", action="store_true", help="stream new lines (Ctrl+C to stop)")
+    parser.add_argument("-e", "--errors", action="store_true", help="only errors (journalctl -p err / error.log / lines matching error)")
     args = parser.parse_args()
 
     cfg = load_config(args.environment)
@@ -22,13 +23,16 @@ def main():
     name = shlex.quote(cfg["backend"]["service_name"])
     follow = "-f" if args.follow else ""
     if args.target == "nginx":
-        cmd = (f"sudo tail -n {args.lines} {follow} /var/log/nginx/error.log "
-               f"/var/log/nginx/access.log")
+        files = "/var/log/nginx/error.log" if args.errors else "/var/log/nginx/error.log /var/log/nginx/access.log"
+        cmd = f"sudo tail -n {args.lines} {follow} {files}"
     elif cfg.get("docker"):
         path = shlex.quote(deploy.app_dir(cfg["backend"]))
         cmd = f"cd {path} && sudo docker compose -p {name} logs --tail {args.lines} {follow}"
+        if args.errors:
+            cmd += " 2>&1 | grep -iE 'error|exception|traceback|critical'"
     else:
-        cmd = f"sudo journalctl -u {name} -n {args.lines} {follow} --no-pager"
+        level = "-p err" if args.errors else ""
+        cmd = f"sudo journalctl -u {name} {level} -n {args.lines} {follow} --no-pager"
     try:
         subprocess.run(["ssh", "-t", *srv.ssh_opts, srv.target, cmd])
     except KeyboardInterrupt:

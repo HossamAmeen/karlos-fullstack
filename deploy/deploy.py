@@ -242,7 +242,8 @@ def proxy_conf(domains, port, files=()):
 """
 
 
-def deploy_frontend(srv, cfg, docker):
+def build_frontend(srv, cfg, docker):
+    """Pull the frontend and build/start it. Does not touch the nginx config."""
     fe, be = cfg["frontend"], cfg["backend"]
     api_url = fe.get("api_url") or f"{scheme(cfg)}://{be['domain']}"
     port = fe.get("port", 8080)
@@ -250,7 +251,6 @@ def deploy_frontend(srv, cfg, docker):
     compose_file = fe.get("compose_file", f"docker/{cfg['_env']}/docker-compose.yml")
     path = shlex.quote(app_dir(fe))
     web_root = fe.get("web_root")
-    conf = f"/etc/nginx/conf.d/{be['service_name']}-frontend.conf"
 
     step(f"Updating frontend from git ({fe['git_url']})")
     git_sync(srv, fe["remote_path"], fe["git_url"], fe.get("branch", "main"))
@@ -262,7 +262,6 @@ cd {path}
 printf 'VITE_API_BASE_URL=%s\\nFRONTEND_PORT=%s\\nDOCKERFILE=%s\\n' {shlex.quote(api_url)} {port} {shlex.quote(dockerfile)} > .env
 sudo docker compose -f {shlex.quote(compose_file)} --env-file .env -p {shlex.quote(be['service_name'] + '-frontend')} up -d --build
 """)
-        srv.write_file(conf, proxy_conf(fe["domains"], port))
         return
 
     step(f"Building frontend on the server (VITE_API_BASE_URL={api_url})")
@@ -282,7 +281,18 @@ find {shlex.quote(web_root)} -mindepth 1 -delete
 cp -a dist/. {shlex.quote(web_root)}/
 """)
 
+
+def deploy_frontend(srv, cfg, docker):
+    fe, be = cfg["frontend"], cfg["backend"]
+    conf = f"/etc/nginx/conf.d/{be['service_name']}-frontend.conf"
+    build_frontend(srv, cfg, docker)
+
+    if docker:
+        srv.write_file(conf, proxy_conf(fe["domains"], fe.get("port", 8080)))
+        return
+
     step("Configuring nginx for frontend")
+    web_root = fe.get("web_root")
     srv.write_file(conf, f"""server {{
     listen 80;
     server_name {" ".join(fe['domains'])};

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Quickly update the backend on the server: git pull, migrate, collectstatic, restart, notify.
+"""Quickly update the backend and frontend on the server: git pull, migrate, collectstatic, restart, notify.
 
 Unlike deploy.py this does not provision anything (no packages, nginx or unit files);
 use it for routine code updates once the server has been deployed.
@@ -39,8 +39,12 @@ sudo docker compose -f {shlex.quote(compose_file)} --env-file .env -p {shlex.quo
         srv.run(f"sudo systemctl restart {shlex.quote(name)}\nsleep 3\nsudo systemctl is-active {shlex.quote(name)}")
 
 
+def restart_frontend(srv, cfg, docker):
+    deploy.build_frontend(srv, cfg, docker)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Pull, migrate, collectstatic and restart the backend on the server.")
+    parser = argparse.ArgumentParser(description="Pull, migrate, collectstatic and restart the backend and frontend on the server (nginx config is not changed).")
     parser.add_argument("environment", nargs="?", choices=deploy.ENVIRONMENTS, default="staging",
                         help="target environment (default: staging)")
     args = parser.parse_args()
@@ -49,10 +53,11 @@ def main():
     cfg["_env"] = env
     srv = Server(cfg)
     docker = bool(cfg.get("docker", False))
-    print(f"Restarting {env} backend on {srv.target} ({'docker' if docker else 'systemd'})")
+    print(f"Restarting {env} backend and frontend on {srv.target} ({'docker' if docker else 'systemd'})")
 
     try:
         restart_backend(srv, cfg, docker)
+        restart_frontend(srv, cfg, docker)
         healthy, lines = deploy.verify(cfg)
     except Exception:
         notify(cfg, f"Restart {env} FAILED", f"Failed during: {deploy._current_step}", ok=False)
