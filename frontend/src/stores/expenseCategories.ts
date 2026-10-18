@@ -32,9 +32,9 @@ export const useExpenseCategoriesStore = defineStore('expenseCategories', () => 
 
   const fetchMainCategories = () =>
     load(mainCategories, () => expenseMainCategoriesApi.list())
-  const fetchCategories = (mainCategory?: number | null) =>
+  const fetchCategories = (mainCategory?: number | null, ordering?: string) =>
     load(categories, () =>
-      expenseCategoriesApi.list({ main_category: mainCategory ?? undefined }),
+      expenseCategoriesApi.list({ main_category: mainCategory ?? undefined, ordering }),
     )
 
   async function createMainCategory(payload: ExpenseMainCategoryPayload) {

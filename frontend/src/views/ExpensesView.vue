@@ -23,6 +23,8 @@ const lookups = useExpenseCategoriesStore()
 const clientsStore = useClientsStore()
 const router = useRouter()
 
+const CATEGORY_ORDERING = 'main_category__name,order_number,name'
+
 const dialogOpen = ref(false)
 const editingId = ref<number | null>(null)
 const formError = ref<string | null>(null)
@@ -46,11 +48,7 @@ const filterCategories = computed(() =>
       expenses.mainCategoryFilter == null || c.main_category === expenses.mainCategoryFilter,
   ),
 )
-const categoryButtons = computed(() =>
-  filterCategories.value
-    .filter((c) => c.is_shown)
-    .sort((a, b) => a.order_number - b.order_number || a.name.localeCompare(b.name)),
-)
+const categoryButtons = computed(() => filterCategories.value.filter((c) => c.is_shown))
 
 function selectCategory(id: number | null) {
   expenses.categoryFilter = id
@@ -77,6 +75,13 @@ function resetForm() {
 
 function openCreate() {
   resetForm()
+  const selected = lookups.categories.find((c) => c.id === expenses.categoryFilter)
+  if (selected) {
+    form.main_category = selected.main_category
+    form.category = selected.id
+  } else if (expenses.mainCategoryFilter != null) {
+    form.main_category = expenses.mainCategoryFilter
+  }
   dialogOpen.value = true
 }
 
@@ -109,7 +114,7 @@ async function load() {
     await Promise.all([
       expenses.fetchAll(),
       lookups.fetchMainCategories(),
-      lookups.fetchCategories(),
+      lookups.fetchCategories(null, CATEGORY_ORDERING),
       clientsStore.fetchAll(),
     ])
   } catch (err) {
@@ -123,6 +128,17 @@ function onMainFilterChange() {
 }
 
 function applyFilters() {
+  expenses.page = 1
+  expenses.fetchAll().catch(handleAuthError)
+}
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(expenses.totalCount / expenses.pageSize)),
+)
+
+function goToPage(p: number) {
+  if (p < 1 || p > totalPages.value || p === expenses.page) return
+  expenses.page = p
   expenses.fetchAll().catch(handleAuthError)
 }
 
@@ -171,7 +187,7 @@ async function onSubmit() {
     } else {
       await expenses.create(payload)
     }
-    void lookups.fetchCategories()
+    void lookups.fetchCategories(null, CATEGORY_ORDERING)
     closeDialog()
   } catch (err) {
     await handleAuthError(err)
@@ -190,7 +206,7 @@ async function onDelete(expense: Expense) {
 
   try {
     await expenses.remove(expense.id)
-    void lookups.fetchCategories()
+    void lookups.fetchCategories(null, CATEGORY_ORDERING)
     if (editingId.value === expense.id) closeDialog()
   } catch (err) {
     await handleAuthError(err)
@@ -304,7 +320,6 @@ onMounted(() => {
           <thead>
             <tr>
               <th>التاريخ</th>
-              <th>التصنيف الرئيسي</th>
               <th>التصنيف الفرعي</th>
               <th>العميل</th>
               <th>الوصف</th>
@@ -314,14 +329,13 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="expenses.loading">
-              <td colspan="7" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="6" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="expenses.items.length === 0">
-              <td colspan="7" class="ui-empty">لا توجد مصروفات.</td>
+              <td colspan="6" class="ui-empty">لا توجد مصروفات.</td>
             </tr>
             <tr v-for="expense in expenses.items" :key="expense.id">
               <td>{{ expense.expense_date }}</td>
-              <td>{{ expense.main_category_name }}</td>
               <td>{{ expense.category_name }}</td>
               <td>{{ expense.client_name || '—' }}</td>
               <td>{{ expense.description }}</td>
@@ -335,6 +349,15 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+      <div v-if="totalPages > 1" class="pagination">
+        <UiButton variant="outline" size="sm" :disabled="expenses.page <= 1" @click="goToPage(expenses.page - 1)">
+          السابق
+        </UiButton>
+        <span>صفحة {{ expenses.page }} من {{ totalPages }} ({{ expenses.totalCount }})</span>
+        <UiButton variant="outline" size="sm" :disabled="expenses.page >= totalPages" @click="goToPage(expenses.page + 1)">
+          التالي
+        </UiButton>
       </div>
     </UiCard>
 
@@ -409,6 +432,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0 0.5rem;
+}
 .category-tabs {
   display: flex;
   flex-wrap: wrap;

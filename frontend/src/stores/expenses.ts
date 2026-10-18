@@ -29,6 +29,11 @@ export const useExpensesStore = defineStore('expenses', () => {
   const categoryFilter = ref<number | null>(null)
   const clientFilter = ref<number | null>(null)
 
+  // Pagination
+  const pageSize = 20
+  const page = ref(1)
+  const totalCount = ref(0)
+
   async function fetchAll() {
     loading.value = true
     error.value = null
@@ -44,11 +49,17 @@ export const useExpensesStore = defineStore('expenses', () => {
       }
       
       const [listData, summaryData] = await Promise.all([
-        listExpenses(params),
+        listExpenses({ ...params, limit: pageSize, offset: (page.value - 1) * pageSize }),
         getExpensesSummary(params)
       ])
       
       items.value = listData.results
+      totalCount.value = listData.count
+      const lastPage = Math.max(1, Math.ceil(listData.count / pageSize))
+      if (page.value > lastPage) {
+        page.value = lastPage
+        return fetchAll()
+      }
       summary.value = summaryData
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'Failed to load expenses'
@@ -79,6 +90,7 @@ export const useExpensesStore = defineStore('expenses', () => {
     items, summary, loading, error, 
     search, dateFilter, startDateFilter, endDateFilter,
     mainCategoryFilter, categoryFilter, clientFilter,
+    page, pageSize, totalCount,
     fetchAll, create, update, remove 
   }
 })
