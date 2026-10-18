@@ -17,7 +17,7 @@ staging:
     port: 8080                       # docker only: local port of the frontend container
     dockerfile: docker/staging/Dockerfile           # docker only: path inside the repo
     compose_file: docker/staging/docker-compose.yml # docker only: path inside the repo
-    api_url: http://api.karlos.hossam-ameen.online  # optional, defaults to http://<backend.domain>
+    api_url: https://api.karlos.hossam-ameen.online  # optional, defaults to http://<backend.domain>
 
   backend:
     domain: api.karlos.hossam-ameen.online
