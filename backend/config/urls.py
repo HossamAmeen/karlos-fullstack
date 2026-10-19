@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from apps.core.urls import v1_urlpatterns as core_v1_urlpatterns
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -31,6 +32,7 @@ urlpatterns = [
     ),
     # Local apps
     path("api/", include("apps.core.urls")),
+    path("api/v1/", include(core_v1_urlpatterns)),
     path("api/v1/", include("apps.clients.urls")),
     path("api/v1/", include("apps.services.urls")),
     path("api/v1/", include("apps.invoices.urls")),

@@ -57,6 +57,7 @@ export interface ClientStatement {
   total_charged: string
   total_deposits: string
   balance_due: string
+  total_expenses: string
   invoices: ClientStatementInvoice[]
   deposits: ClientStatementDeposit[]
 }

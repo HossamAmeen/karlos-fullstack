@@ -136,5 +136,6 @@ class ClientStatementSerializer(serializers.Serializer):
     total_charged = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_deposits = serializers.DecimalField(max_digits=12, decimal_places=2)
     balance_due = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_expenses = serializers.DecimalField(max_digits=12, decimal_places=2)
     invoices = ClientStatementInvoiceSerializer(many=True)
     deposits = ClientStatementDepositSerializer(many=True)

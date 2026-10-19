@@ -11,6 +11,7 @@ import ServicesView from '@/views/ServicesView.vue'
 import ExpenseCategoriesView from '@/views/ExpenseCategoriesView.vue'
 import ExpenseMainCategoriesView from '@/views/ExpenseMainCategoriesView.vue'
 import ExpensesView from '@/views/ExpensesView.vue'
+import StatisticsView from '@/views/StatisticsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,6 +25,11 @@ const router = createRouter({
     {
       path: '/',
       redirect: { name: 'clients' },
+    },
+    {
+      path: '/statistics',
+      name: 'statistics',
+      component: StatisticsView,
     },
     {
       path: '/clients',

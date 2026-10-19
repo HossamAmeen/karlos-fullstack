@@ -6,6 +6,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from .selectors import get_statistics
+
 
 class HealthView(APIView):
     """Liveness/readiness probe: public, reports DB connectivity."""
@@ -26,3 +28,11 @@ class HealthView(APIView):
         return Response(
             {"status": "ok", "database": "ok", "version": settings.APP_VERSION}
         )
+
+
+class StatisticsView(APIView):
+    """Totals of bills / expenses plus current month and year profit."""
+
+    @extend_schema(tags=["statistics"], responses={200: dict})
+    def get(self, request):
+        return Response(get_statistics())

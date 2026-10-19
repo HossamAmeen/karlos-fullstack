@@ -6,6 +6,7 @@ from django.db.models import QuerySet, Sum
 from django.db.models.functions import Coalesce
 
 from apps.clients.models import Client
+from apps.expenses.models import Expense
 from apps.invoices.models import Invoice, Payment
 from apps.services.pricing import quantize_money
 
@@ -38,6 +39,9 @@ class ClientSelector:
         deposited = Payment.objects.filter(client=client).aggregate(
             total=Coalesce(Sum("amount"), Decimal("0"))
         )["total"]
+        expenses_total = Expense.objects.filter(client=client).aggregate(
+            total=Coalesce(Sum("amount"), Decimal("0"))
+        )["total"]
         charged = quantize_money(charged)
         deposited = quantize_money(deposited)
         balance_due = quantize_money(charged - deposited)
@@ -47,6 +51,7 @@ class ClientSelector:
             "total_charged": charged,
             "total_deposits": deposited,
             "balance_due": balance_due,
+            "total_expenses": quantize_money(expenses_total),
             "invoices": invoices,
             "deposits": deposits,
         }

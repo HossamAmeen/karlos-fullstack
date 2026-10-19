@@ -118,6 +118,14 @@ const error = ref<string | null>(null)
 const saving = ref(false)
 const formError = ref<string | null>(null)
 
+type StatementTab = 'invoices' | 'deposits' | 'expenses'
+const activeTab = ref<StatementTab>('invoices')
+const tabs: { key: StatementTab; label: string }[] = [
+  { key: 'invoices', label: 'إظهار الفواتير' },
+  { key: 'deposits', label: 'إظهار المدفوعات' },
+  { key: 'expenses', label: 'إظهار المصروفات' },
+]
+
 const PAGE_SIZE = 20
 const invoicesPage = ref(1)
 const depositsPage = ref(1)
@@ -256,9 +264,26 @@ watch(
             {{ statement.balance_due }}
           </p>
         </UiCard>
+        <UiCard>
+          <p class="stat-label">إجمالي المصروفات</p>
+          <p class="stat-value">{{ statement.total_expenses }}</p>
+        </UiCard>
       </div>
 
-      <UiCard>
+      <div class="tabs" role="tablist">
+        <UiButton
+          v-for="tab in tabs"
+          :key="tab.key"
+          role="tab"
+          :aria-selected="activeTab === tab.key"
+          :variant="activeTab === tab.key ? 'default' : 'outline'"
+          @click="activeTab = tab.key"
+        >
+          {{ tab.label }}
+        </UiButton>
+      </div>
+
+      <UiCard v-show="activeTab === 'invoices'">
         <h2 class="section-title">الفواتير المستحقة على العميل</h2>
         <div class="ui-table-wrap">
           <table class="ui-table">
@@ -305,7 +330,7 @@ watch(
         </div>
       </UiCard>
 
-      <UiCard>
+      <UiCard v-show="activeTab === 'deposits'">
         <h2 class="section-title">المقبوضات والودائع</h2>
         <form class="deposit-form" @submit.prevent="addDeposit">
           <div class="ui-field">
@@ -363,7 +388,7 @@ watch(
         </div>
       </UiCard>
 
-      <UiCard>
+      <UiCard v-show="activeTab === 'expenses'">
         <div class="section-head">
           <h2 class="section-title">مصروفات العميل</h2>
           <UiButton size="sm" @click="openExpenseDialog">إضافة مصروف</UiButton>
@@ -470,8 +495,13 @@ watch(
 }
 @media (min-width: 768px) {
   .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .stat-label {
   margin: 0;

@@ -11,6 +11,7 @@ const router = useRouter()
 const route = useRoute()
 
 const navItems = [
+  { name: 'statistics', to: '/statistics', label: 'الإحصائيات' },
   { name: 'clients', to: '/clients', label: 'العملاء' },
   { name: 'service-categories', to: '/service-categories', label: 'الخدمات الرئيسية' },
   { name: 'services', to: '/services', label: 'الخدمات' },

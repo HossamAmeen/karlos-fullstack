@@ -47,7 +47,7 @@
 | GET | `/api/v1/clients/{id}/` | JWT | Retrieve active client |
 | PUT/PATCH | `/api/v1/clients/{id}/` | JWT | Update |
 | DELETE | `/api/v1/clients/{id}/` | JWT | Soft delete |
-| GET | `/api/v1/clients/{id}/statement/` | JWT | Client ledger: invoices charged + deposits + balance |
+| GET | `/api/v1/clients/{id}/statement/` | JWT | Client ledger: invoices charged + deposits + balance + `total_expenses` |
 | POST | `/api/v1/clients/{id}/deposits/` | JWT | Record standalone deposit; returns updated statement |
 
 ### Example write payload
