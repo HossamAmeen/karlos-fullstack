@@ -51,7 +51,7 @@ Before planning changes, read:
 - Vue 3 + Pinia + Vue Router; RTL Arabic UI
 - API clients under `src/api/`; stores call APIs
 - SPA flows without full page refresh where possible
-- Deploy version: bump `frontend/package.json` `version` (shown as `vX.Y.Z` on login + sidebar) so you can tell if a deploy includes latest changes; current frontend version is `5.2.3`
+- Deploy version: bump `frontend/package.json` `version` (shown as `vX.Y.Z` on login + sidebar) so you can tell if a deploy includes latest changes; current frontend version is `5.2.4`
 
 ## Local run (happy path)
 

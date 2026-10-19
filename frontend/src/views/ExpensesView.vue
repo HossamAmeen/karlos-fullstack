@@ -319,6 +319,7 @@ onMounted(() => {
         <table class="ui-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>التاريخ</th>
               <th>التصنيف الفرعي</th>
               <th>العميل</th>
@@ -329,12 +330,13 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="expenses.loading">
-              <td colspan="6" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="7" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="expenses.items.length === 0">
-              <td colspan="6" class="ui-empty">لا توجد مصروفات.</td>
+              <td colspan="7" class="ui-empty">لا توجد مصروفات.</td>
             </tr>
-            <tr v-for="expense in expenses.items" :key="expense.id">
+            <tr v-for="(expense, i) in expenses.items" :key="expense.id">
+              <td>{{ (expenses.page - 1) * expenses.pageSize + i + 1 }}</td>
               <td>{{ expense.expense_date }}</td>
               <td>{{ expense.category_name }}</td>
               <td>{{ expense.client_name || '—' }}</td>

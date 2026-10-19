@@ -90,6 +90,7 @@ onMounted(load)
         <table>
           <thead>
             <tr>
+              <th>#</th>
               <th>الرقم</th>
               <th>العميل</th>
               <th>التاريخ</th>
@@ -102,11 +103,12 @@ onMounted(load)
           </thead>
           <tbody>
             <tr
-              v-for="invoice in invoices.items"
+              v-for="(invoice, i) in invoices.items"
               :key="invoice.id"
               class="row-link"
               @click="openInvoice(invoice)"
             >
+              <td>{{ i + 1 }}</td>
               <td>{{ invoice.number }}</td>
               <td>{{ invoice.client_name }}</td>
               <td>{{ invoice.issue_date }}</td>

@@ -155,6 +155,7 @@ onMounted(async () => {
         <table class="ui-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>الاسم</th>
               <th>التصنيف الرئيسي</th>
               <th>الترتيب</th>
@@ -164,12 +165,13 @@ onMounted(async () => {
           </thead>
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="5" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="6" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="store.categories.length === 0">
-              <td colspan="5" class="ui-empty">لا توجد تصنيفات فرعية.</td>
+              <td colspan="6" class="ui-empty">لا توجد تصنيفات فرعية.</td>
             </tr>
-            <tr v-for="item in store.categories" :key="item.id">
+            <tr v-for="(item, i) in store.categories" :key="item.id">
+              <td>{{ i + 1 }}</td>
               <td>{{ item.name }}</td>
               <td>{{ item.main_category_name }}</td>
               <td>{{ item.order_number }}</td>

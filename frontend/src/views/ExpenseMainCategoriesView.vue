@@ -104,6 +104,7 @@ onMounted(() => {
         <table class="ui-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>الاسم</th>
               <th>عدد التصنيفات الفرعية</th>
               <th>إجراءات</th>
@@ -111,12 +112,13 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="3" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="4" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="store.mainCategories.length === 0">
-              <td colspan="3" class="ui-empty">لا توجد تصنيفات رئيسية بعد.</td>
+              <td colspan="4" class="ui-empty">لا توجد تصنيفات رئيسية بعد.</td>
             </tr>
-            <tr v-for="item in store.mainCategories" :key="item.id">
+            <tr v-for="(item, i) in store.mainCategories" :key="item.id">
+              <td>{{ i + 1 }}</td>
               <td>{{ item.name }}</td>
               <td>{{ item.categories_count }}</td>
               <td>

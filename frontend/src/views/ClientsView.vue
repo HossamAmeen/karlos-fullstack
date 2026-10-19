@@ -136,6 +136,7 @@ onMounted(() => {
         <table class="ui-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>الاسم</th>
               <th>الهاتف</th>
               <th>البريد</th>
@@ -145,12 +146,13 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="clients.loading">
-              <td colspan="5" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="6" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="clients.items.length === 0">
-              <td colspan="5" class="ui-empty">لا يوجد عملاء بعد.</td>
+              <td colspan="6" class="ui-empty">لا يوجد عملاء بعد.</td>
             </tr>
-            <tr v-for="client in clients.items" :key="client.id">
+            <tr v-for="(client, i) in clients.items" :key="client.id">
+              <td>{{ i + 1 }}</td>
               <td>{{ client.name }}</td>
               <td>{{ client.phone }}</td>
               <td>{{ client.email || '—' }}</td>

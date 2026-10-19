@@ -182,6 +182,7 @@ onMounted(() => {
         <table class="ui-table">
           <thead>
             <tr>
+              <th>#</th>
               <th>اللون</th>
               <th>الاسم</th>
               <th>الخدمة الرئيسية</th>
@@ -194,10 +195,10 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="services.loading">
-              <td colspan="8" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="9" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="services.items.length === 0">
-              <td colspan="8" class="ui-empty">
+              <td colspan="9" class="ui-empty">
                 {{
                   hasCategories
                     ? 'لا توجد خدمات بعد.'
@@ -205,7 +206,8 @@ onMounted(() => {
                 }}
               </td>
             </tr>
-            <tr v-for="service in services.items" :key="service.id">
+            <tr v-for="(service, i) in services.items" :key="service.id">
+              <td>{{ i + 1 }}</td>
               <td>
                 <div
                   class="color-swatch"

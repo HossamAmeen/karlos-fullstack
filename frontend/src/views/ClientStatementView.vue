@@ -289,6 +289,7 @@ watch(
           <table class="ui-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>الفاتورة</th>
                 <th>التاريخ</th>
                 <th>الحالة</th>
@@ -300,14 +301,15 @@ watch(
             </thead>
             <tbody>
               <tr v-if="statement.invoices.length === 0">
-                <td colspan="7" class="ui-empty">لا توجد فواتير مؤكدة أو ملغاة بعد.</td>
+                <td colspan="8" class="ui-empty">لا توجد فواتير مؤكدة أو ملغاة بعد.</td>
               </tr>
               <tr
-                v-for="inv in pagedInvoices"
+                v-for="(inv, i) in pagedInvoices"
                 :key="inv.id"
                 class="row-link"
                 @click="openInvoice(inv.id)"
               >
+                <td>{{ (invoicesPage - 1) * PAGE_SIZE + i + 1 }}</td>
                 <td>{{ inv.number }}</td>
                 <td>{{ inv.issue_date }}</td>
                 <td>{{ inv.status === 'confirmed' ? 'مؤكدة' : 'ملغاة' }}</td>
@@ -358,6 +360,7 @@ watch(
           <table class="ui-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>التاريخ</th>
                 <th>المبلغ (وديعة)</th>
                 <th>الفاتورة</th>
@@ -366,9 +369,10 @@ watch(
             </thead>
             <tbody>
               <tr v-if="statement.deposits.length === 0">
-                <td colspan="4" class="ui-empty">لا توجد مقبوضات بعد.</td>
+                <td colspan="5" class="ui-empty">لا توجد مقبوضات بعد.</td>
               </tr>
-              <tr v-for="dep in pagedDeposits" :key="dep.id">
+              <tr v-for="(dep, i) in pagedDeposits" :key="dep.id">
+                <td>{{ (depositsPage - 1) * PAGE_SIZE + i + 1 }}</td>
                 <td>{{ dep.paid_at }}</td>
                 <td>{{ dep.amount }}</td>
                 <td>{{ dep.invoice_number || 'وديعة عامة' }}</td>
@@ -397,6 +401,7 @@ watch(
           <table class="ui-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>التاريخ</th>
                 <th>التصنيف</th>
                 <th>الوصف</th>
@@ -405,12 +410,13 @@ watch(
             </thead>
             <tbody>
               <tr v-if="expensesLoading">
-                <td colspan="4" class="ui-empty">جارٍ التحميل…</td>
+                <td colspan="5" class="ui-empty">جارٍ التحميل…</td>
               </tr>
               <tr v-else-if="expenseItems.length === 0">
-                <td colspan="4" class="ui-empty">لا توجد مصروفات لهذا العميل.</td>
+                <td colspan="5" class="ui-empty">لا توجد مصروفات لهذا العميل.</td>
               </tr>
-              <tr v-for="exp in expenseItems" :key="exp.id">
+              <tr v-for="(exp, i) in expenseItems" :key="exp.id">
+                <td>{{ (expensesPage - 1) * 20 + i + 1 }}</td>
                 <td>{{ exp.expense_date }}</td>
                 <td>{{ exp.main_category_name }} / {{ exp.category_name }}</td>
                 <td>{{ exp.description }}</td>
