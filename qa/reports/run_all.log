@@ -1,0 +1,56 @@
+== backend unit/API tests
+........................................................................ [ 75%]
+.......................                                                  [100%]
+95 passed in 4.88s
+== frontend unit/page tests
+
+ RUN  v3.2.7 /media/hossam/Software5/freelancer/karlos/frontend
+
+ ✓ src/api/__tests__/client.spec.ts (4 tests) 71ms
+ ✓ src/stores/__tests__/auth.spec.ts (3 tests) 46ms
+ ✓ src/router/__tests__/router.spec.ts (23 tests) 171ms
+ ✓ src/views/__tests__/views.spec.ts (22 tests) 901ms
+ ✓ src/utils/__tests__/pricing.spec.ts (6 tests) 6ms
+
+ Test Files  5 passed (5)
+      Tests  58 passed (58)
+   Start at  13:11:55
+   Duration  5.74s (transform 2.68s, setup 0ms, collect 5.93s, tests 1.19s, environment 5.07s, prepare 944ms)
+
+== live API
+...........................................                              [100%]
+- generated xml file: /media/hossam/Software5/freelancer/karlos/qa/reports/api-results.xml -
+43 passed in 29.99s
+== live UI
+
+Running 26 tests using 1 worker
+
+  ✓   1 tests/ui.spec.ts:41:7 › Authentication › login page renders with version (2.8s)
+  ✓   2 tests/ui.spec.ts:48:7 › Authentication › wrong password shows an error and stays on login (4.8s)
+  ✓   3 tests/ui.spec.ts:54:7 › Authentication › empty form is blocked by validation (3.9s)
+  ✓   4 tests/ui.spec.ts:60:7 › Authentication › valid login lands on the app and logout returns to login (6.5s)
+  ✓   5 tests/ui.spec.ts:69:9 › Authentication › anonymous /statistics redirects to login (3.4s)
+  ✓   6 tests/ui.spec.ts:69:9 › Authentication › anonymous /clients redirects to login (4.0s)
+  ✓   7 tests/ui.spec.ts:69:9 › Authentication › anonymous /service-categories redirects to login (3.3s)
+  ✓   8 tests/ui.spec.ts:69:9 › Authentication › anonymous /services redirects to login (3.6s)
+  ✓   9 tests/ui.spec.ts:69:9 › Authentication › anonymous /invoices redirects to login (3.8s)
+  ✓  10 tests/ui.spec.ts:69:9 › Authentication › anonymous /invoices/new redirects to login (6.2s)
+  ✓  11 tests/ui.spec.ts:69:9 › Authentication › anonymous /expenses redirects to login (6.3s)
+  ✓  12 tests/ui.spec.ts:69:9 › Authentication › anonymous /expense-main-categories redirects to login (7.3s)
+  ✓  13 tests/ui.spec.ts:69:9 › Authentication › anonymous /expense-categories redirects to login (6.2s)
+  ✓  14 tests/ui.spec.ts:83:9 › Pages (authenticated) › Statistics loads without errors (8.6s)
+  ✓  15 tests/ui.spec.ts:83:9 › Pages (authenticated) › Clients loads without errors (9.9s)
+  ✓  16 tests/ui.spec.ts:83:9 › Pages (authenticated) › Service categories loads without errors (5.4s)
+  ✓  17 tests/ui.spec.ts:83:9 › Pages (authenticated) › Services loads without errors (5.6s)
+  ✓  18 tests/ui.spec.ts:83:9 › Pages (authenticated) › Invoices loads without errors (5.6s)
+  ✓  19 tests/ui.spec.ts:83:9 › Pages (authenticated) › New invoice loads without errors (5.7s)
+  ✓  20 tests/ui.spec.ts:83:9 › Pages (authenticated) › Expenses loads without errors (5.6s)
+  ✓  21 tests/ui.spec.ts:83:9 › Pages (authenticated) › Expense main categories loads without errors (5.3s)
+  ✓  22 tests/ui.spec.ts:83:9 › Pages (authenticated) › Expense categories loads without errors (6.0s)
+  ✓  23 tests/ui.spec.ts:93:7 › Pages (authenticated) › sidebar navigation reaches every section without reload (4.5s)
+  ✓  24 tests/ui.spec.ts:102:7 › Clients CRUD via UI › create, edit, open statement, delete (8.4s)
+  ✓  25 tests/ui.spec.ts:132:7 › Clients CRUD via UI › duplicate phone is rejected (7.5s)
+  ✓  26 tests/ui.spec.ts:153:7 › Responsive › mobile: menu toggle works and no horizontal page scroll (4.4s)
+
+  26 passed (2.5m)
+/media/hossam/Software5/freelancer/karlos/qa/reports/QA_REPORT.md

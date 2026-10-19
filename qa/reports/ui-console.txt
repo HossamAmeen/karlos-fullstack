@@ -1,0 +1,105 @@
+
+Running 26 tests using 1 worker
+
+  ✓   1 tests/ui.spec.ts:40:7 › Authentication › login page renders with version (2.2s)
+  ✓   2 tests/ui.spec.ts:47:7 › Authentication › wrong password shows an error and stays on login (4.2s)
+  ✓   3 tests/ui.spec.ts:53:7 › Authentication › empty form is blocked by validation (2.2s)
+  ✓   4 tests/ui.spec.ts:59:7 › Authentication › valid login lands on the app and logout returns to login (4.1s)
+  ✓   5 tests/ui.spec.ts:68:9 › Authentication › anonymous /statistics redirects to login (2.1s)
+  ✓   6 tests/ui.spec.ts:68:9 › Authentication › anonymous /clients redirects to login (2.0s)
+  ✓   7 tests/ui.spec.ts:68:9 › Authentication › anonymous /service-categories redirects to login (2.1s)
+  ✓   8 tests/ui.spec.ts:68:9 › Authentication › anonymous /services redirects to login (2.4s)
+  ✓   9 tests/ui.spec.ts:68:9 › Authentication › anonymous /invoices redirects to login (2.2s)
+  ✓  10 tests/ui.spec.ts:68:9 › Authentication › anonymous /invoices/new redirects to login (2.2s)
+  ✓  11 tests/ui.spec.ts:68:9 › Authentication › anonymous /expenses redirects to login (2.0s)
+  ✓  12 tests/ui.spec.ts:68:9 › Authentication › anonymous /expense-main-categories redirects to login (1.9s)
+  ✓  13 tests/ui.spec.ts:68:9 › Authentication › anonymous /expense-categories redirects to login (2.2s)
+  ✓  14 tests/ui.spec.ts:82:9 › Pages (authenticated) › Statistics loads without errors (5.2s)
+  ✓  15 tests/ui.spec.ts:82:9 › Pages (authenticated) › Clients loads without errors (5.0s)
+  ✓  16 tests/ui.spec.ts:82:9 › Pages (authenticated) › Service categories loads without errors (5.1s)
+  ✓  17 tests/ui.spec.ts:82:9 › Pages (authenticated) › Services loads without errors (5.4s)
+  ✓  18 tests/ui.spec.ts:82:9 › Pages (authenticated) › Invoices loads without errors (5.4s)
+  ✓  19 tests/ui.spec.ts:82:9 › Pages (authenticated) › New invoice loads without errors (5.5s)
+  ✓  20 tests/ui.spec.ts:82:9 › Pages (authenticated) › Expenses loads without errors (5.5s)
+  ✓  21 tests/ui.spec.ts:82:9 › Pages (authenticated) › Expense main categories loads without errors (5.1s)
+  ✓  22 tests/ui.spec.ts:82:9 › Pages (authenticated) › Expense categories loads without errors (5.5s)
+  ✓  23 tests/ui.spec.ts:92:7 › Pages (authenticated) › sidebar navigation reaches every section without reload (4.2s)
+  ✘  24 tests/ui.spec.ts:101:7 › Clients CRUD via UI › create, edit, open statement, delete (9.1s)
+  ✘  25 tests/ui.spec.ts:101:7 › Clients CRUD via UI › create, edit, open statement, delete (retry #1) (7.5s)
+  ✓  26 tests/ui.spec.ts:129:7 › Clients CRUD via UI › duplicate phone is rejected (6.5s)
+  ✓  27 tests/ui.spec.ts:150:7 › Responsive › mobile: menu toggle works and no horizontal page scroll (4.5s)
+
+
+  1) tests/ui.spec.ts:101:7 › Clients CRUD via UI › create, edit, open statement, delete ───────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "console: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    + ]
+
+      124 |     await page.locator('tr', { hasText: TAG }).getByRole('button', { name: 'حذف' }).click()
+      125 |     await expect(page.locator('tr', { hasText: TAG })).toHaveCount(0)
+    > 126 |     expect(problems.filter((p) => !p.includes('400'))).toEqual([])
+          |                                                        ^
+      127 |   })
+      128 |
+      129 |   test('duplicate phone is rejected', async ({ page }) => {
+        at /media/hossam/Software5/freelancer/karlos/qa/tests/ui.spec.ts:126:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "console: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    + ]
+
+      124 |     await page.locator('tr', { hasText: TAG }).getByRole('button', { name: 'حذف' }).click()
+      125 |     await expect(page.locator('tr', { hasText: TAG })).toHaveCount(0)
+    > 126 |     expect(problems.filter((p) => !p.includes('400'))).toEqual([])
+          |                                                        ^
+      127 |   })
+      128 |
+      129 |   test('duplicate phone is rejected', async ({ page }) => {
+        at /media/hossam/Software5/freelancer/karlos/qa/tests/ui.spec.ts:126:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace reports/ui-artifacts/ui-Clients-CRUD-via-UI-create-edit-open-statement-delete-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    tests/ui.spec.ts:101:7 › Clients CRUD via UI › create, edit, open statement, delete ────────────
+  25 passed (1.9m)

@@ -1,0 +1,12 @@
+{
+  "name": "karlos-qa",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test:ui": "playwright test",
+    "report": "python3 generate_report.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

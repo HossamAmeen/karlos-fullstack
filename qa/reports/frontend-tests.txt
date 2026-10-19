@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /media/hossam/Software5/freelancer/karlos/frontend
+
+ ✓ src/api/__tests__/client.spec.ts (4 tests) 71ms
+ ✓ src/stores/__tests__/auth.spec.ts (3 tests) 46ms
+ ✓ src/router/__tests__/router.spec.ts (23 tests) 171ms
+ ✓ src/views/__tests__/views.spec.ts (22 tests) 901ms
+ ✓ src/utils/__tests__/pricing.spec.ts (6 tests) 6ms
+
+ Test Files  5 passed (5)
+      Tests  58 passed (58)
+   Start at  13:11:55
+   Duration  5.74s (transform 2.68s, setup 0ms, collect 5.93s, tests 1.19s, environment 5.07s, prepare 944ms)
+

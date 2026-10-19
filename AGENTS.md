@@ -64,3 +64,9 @@ Before planning changes, read:
 - Update matching files under `workflows/business/` for API/domain changes
 - Update this `AGENTS.md` if architecture or domain rules change
 - Keep deploy workflows in each repo’s `.github/workflows/` in sync when release steps change
+
+## Testing & QA
+
+- Backend: `cd backend && .venv/bin/python -m pytest` (soft-delete guard in `apps/core/tests/test_soft_delete.py` — every new model must inherit `BaseModel`, or be allow-listed there)
+- Frontend: `cd frontend && npx vitest run` (page smoke tests in `src/views/__tests__`, router guards, API client, pricing)
+- Live QA automation (`qa/`): `qa/run_all.sh` runs all suites, a live API suite (pytest + requests), a live UI suite (Playwright/Chrome) and writes `qa/reports/QA_REPORT.md`. Override targets with `QA_API_URL`, `QA_FRONT_URL`, `QA_USER`, `QA_PASS`
