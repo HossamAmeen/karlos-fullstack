@@ -59,3 +59,4 @@ celerybeat.pid
 
 # pre-commit
 .pre-commit-config.yaml.bak
+backups/

@@ -143,6 +143,9 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Database backups written by apps.core.backup
+BACKUP_DIR = env("BACKUP_DIR", default=str(BASE_DIR / "backups"))
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
@@ -204,6 +207,8 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 # Celery
 # ---------------------------------------------------------------------------
 
+# Celery is only used when CELERY_BROKER_URL is explicitly configured in the env.
+CELERY_CONFIGURED = bool(env("CELERY_BROKER_URL", default=""))
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
 CELERY_ACCEPT_CONTENT = ["json"]

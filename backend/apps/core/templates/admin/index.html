@@ -1,0 +1,10 @@
+{% extends "admin/index.html" %}
+{% block content %}
+<div style="margin-bottom:1.5rem">
+  <form method="post" action="{% url 'admin:backup' %}">
+    {% csrf_token %}
+    <button type="submit" class="button default">Backup database now</button>
+  </form>
+</div>
+{{ block.super }}
+{% endblock %}

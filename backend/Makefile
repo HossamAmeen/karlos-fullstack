@@ -5,7 +5,7 @@ PYTEST := $(VENV_DIR)/pytest
 CELERY := $(VENV_DIR)/celery
 DJANGO := $(PYTHON) manage.py
 
-.PHONY: install migrate makemigrations shell_plus shell superuser run test lint format check worker beat up down
+.PHONY: backup install migrate makemigrations shell_plus shell superuser run test lint format check worker beat up down
 
 install:
 	python3 -m venv .venv
@@ -42,6 +42,10 @@ lint:
 format:
 	$(VENV_DIR)/ruff check --fix .
 	$(VENV_DIR)/black .
+
+# Usage: make backup [ARGS=--sync]  (queues on Celery if configured, else runs inline)
+backup:
+	$(DJANGO) backup_db $(ARGS)
 
 check:
 	$(DJANGO) check
