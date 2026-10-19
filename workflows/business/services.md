@@ -162,3 +162,11 @@ UI / Admin
 
 Both entities are registered in Django Admin for staff/superuser management.
 Audit fields are read-only in admin.
+
+## Icons
+
+`ServiceCategory` and `Service` have an optional `icon` image (`ImageField`, stored under `MEDIA_ROOT/service_categories/` and `services/`; requires Pillow).
+
+- Create/update (`POST`/`PUT`) accept `multipart/form-data`; send `icon` as a file to set it, or an empty value to clear it. Omitting `icon` on update keeps the current one.
+- Responses return `icon` as an absolute media URL or `null`. Media is served by Django when `DEBUG` is on; the Vite dev server proxies `/media`.
+- The icon is shown in the Services and Service categories list tables.

@@ -34,6 +34,33 @@ const form = reactive({
   color: '#3b82f6',
 })
 
+const iconFile = ref<File | null>(null)
+const iconCleared = ref(false)
+const iconPreview = ref<string | null>(null)
+
+function setIconPreview(url: string | null) {
+  if (iconPreview.value?.startsWith('blob:')) URL.revokeObjectURL(iconPreview.value)
+  iconPreview.value = url
+}
+
+function onIconChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0] ?? null
+  iconFile.value = file
+  iconCleared.value = false
+  setIconPreview(file ? URL.createObjectURL(file) : null)
+}
+
+function clearIcon() {
+  iconFile.value = null
+  iconCleared.value = true
+  setIconPreview(null)
+}
+
+function iconPayload(): File | null | undefined {
+  if (iconFile.value) return iconFile.value
+  return iconCleared.value ? null : undefined
+}
+
 const hasCategories = computed(() => categories.items.length > 0)
 
 const costMethodLabels: Record<CostMethod, string> = {
@@ -52,6 +79,9 @@ function resetForm() {
   form.is_fixed_cost = false
   form.is_additional_service = false
   form.color = '#3b82f6'
+  iconFile.value = null
+  iconCleared.value = false
+  setIconPreview(null)
   formError.value = null
 }
 
@@ -70,6 +100,9 @@ function openEdit(service: Service) {
   form.is_fixed_cost = service.is_fixed_cost
   form.is_additional_service = service.is_additional_service
   form.color = service.color
+  iconFile.value = null
+  iconCleared.value = false
+  setIconPreview(service.icon)
   formError.value = null
   dialogOpen.value = true
 }
@@ -121,6 +154,7 @@ async function onSubmit() {
     is_fixed_cost: form.is_fixed_cost,
     is_additional_service: form.is_additional_service,
     color: form.color,
+    icon: iconPayload(),
   }
 
   saving.value = true
@@ -183,6 +217,7 @@ onMounted(() => {
           <thead>
             <tr>
               <th>#</th>
+              <th>الأيقونة</th>
               <th>اللون</th>
               <th>الاسم</th>
               <th>الخدمة الرئيسية</th>
@@ -195,10 +230,10 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="services.loading">
-              <td colspan="9" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="10" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="services.items.length === 0">
-              <td colspan="9" class="ui-empty">
+              <td colspan="10" class="ui-empty">
                 {{
                   hasCategories
                     ? 'لا توجد خدمات بعد.'
@@ -208,6 +243,9 @@ onMounted(() => {
             </tr>
             <tr v-for="(service, i) in services.items" :key="service.id">
               <td>{{ i + 1 }}</td>
+              <td>
+                <img v-if="service.icon" :src="service.icon" alt="" class="icon-cell" />
+              </td>
               <td>
                 <div
                   class="color-swatch"
@@ -277,6 +315,16 @@ onMounted(() => {
             <UiInput v-model="form.color" type="text" maxlength="7" class="color-text-input" />
           </div>
         </div>
+        <div class="ui-field">
+          <UiLabel html-for="service-icon">الأيقونة</UiLabel>
+          <div class="icon-field">
+            <img v-if="iconPreview" :src="iconPreview" alt="" class="icon-img" />
+            <input id="service-icon" type="file" accept="image/*" @change="onIconChange" />
+            <UiButton v-if="iconPreview" type="button" variant="outline" size="sm" @click="clearIcon">
+              إزالة
+            </UiButton>
+          </div>
+        </div>
         <label class="checkbox-field">
           <input v-model="form.is_fixed_cost" type="checkbox" />
           سعر ثابت
@@ -300,6 +348,29 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.icon-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.icon-img {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  object-fit: cover;
+}
+
+.icon-cell {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  object-fit: cover;
+  display: block;
+}
+
 .notice {
   margin: 0 0 1rem;
   padding: 0.85rem 1rem;

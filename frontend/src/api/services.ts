@@ -12,6 +12,7 @@ export interface Service {
   is_fixed_cost: boolean
   is_additional_service: boolean
   color: string
+  icon: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -27,6 +28,19 @@ export interface ServicePayload {
   is_fixed_cost: boolean
   is_additional_service: boolean
   color: string
+  /** File to upload, null to clear, undefined to keep the current icon. */
+  icon?: File | null
+}
+
+function toFormData(payload: ServicePayload) {
+  const data = new FormData()
+  for (const [key, value] of Object.entries(payload)) {
+    if (key === 'icon') continue
+    data.set(key, String(value))
+  }
+  if (payload.icon instanceof File) data.set('icon', payload.icon)
+  else if (payload.icon === null) data.set('icon', '')
+  return data
 }
 
 export interface PaginatedServices {
@@ -60,14 +74,14 @@ export function listServices(
 export function createService(payload: ServicePayload) {
   return apiFetch<Service>('/api/v1/services/', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   })
 }
 
 export function updateService(id: number, payload: ServicePayload) {
   return apiFetch<Service>(`/api/v1/services/${id}/`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   })
 }
 

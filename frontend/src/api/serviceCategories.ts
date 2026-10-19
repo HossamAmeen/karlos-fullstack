@@ -3,6 +3,7 @@ import { apiFetch } from './client'
 export interface ServiceCategory {
   id: number
   name: string
+  icon: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -12,6 +13,16 @@ export interface ServiceCategory {
 
 export interface ServiceCategoryPayload {
   name: string
+  /** File to upload, null to clear, undefined to keep the current icon. */
+  icon?: File | null
+}
+
+function toFormData(payload: ServiceCategoryPayload) {
+  const data = new FormData()
+  data.set('name', payload.name)
+  if (payload.icon instanceof File) data.set('icon', payload.icon)
+  else if (payload.icon === null) data.set('icon', '')
+  return data
 }
 
 export interface PaginatedServiceCategories {
@@ -35,14 +46,14 @@ export function listServiceCategories(
 export function createServiceCategory(payload: ServiceCategoryPayload) {
   return apiFetch<ServiceCategory>('/api/v1/service-categories/', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   })
 }
 
 export function updateServiceCategory(id: number, payload: ServiceCategoryPayload) {
   return apiFetch<ServiceCategory>(`/api/v1/service-categories/${id}/`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: toFormData(payload),
   })
 }
 

@@ -4,16 +4,19 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.services.models import Service, ServiceCategory
-from apps.services.services import ServiceCategoryService, ServiceService
+from apps.services.services import UNSET, ServiceCategoryService, ServiceService
 from utils.serializers import BaseModelSerializer
 
 
 class ServiceCategorySerializer(BaseModelSerializer):
+    icon = serializers.ImageField(required=False, allow_null=True)
+
     class Meta:
         model = ServiceCategory
         fields = (
             "id",
             "name",
+            "icon",
             "created_at",
             "updated_at",
             "deleted_at",
@@ -47,6 +50,7 @@ class ServiceCategorySerializer(BaseModelSerializer):
         validated_data = self.assign_audit_on_create(validated_data)
         return ServiceCategoryService.create(
             name=validated_data["name"],
+            icon=validated_data.get("icon"),
             created_by=validated_data.get("created_by"),
             updated_by=validated_data.get("updated_by"),
         )
@@ -56,11 +60,13 @@ class ServiceCategorySerializer(BaseModelSerializer):
         return ServiceCategoryService.update(
             category=instance,
             name=validated_data.get("name", instance.name),
+            icon=validated_data.get("icon", UNSET),
             updated_by=validated_data.get("updated_by"),
         )
 
 
 class ServiceSerializer(BaseModelSerializer):
+    icon = serializers.ImageField(required=False, allow_null=True)
     service_category_name = serializers.CharField(
         source="service_category.name",
         read_only=True,
@@ -78,6 +84,7 @@ class ServiceSerializer(BaseModelSerializer):
             "is_fixed_cost",
             "is_additional_service",
             "color",
+            "icon",
             "created_at",
             "updated_at",
             "deleted_at",
@@ -143,6 +150,7 @@ class ServiceSerializer(BaseModelSerializer):
             is_fixed_cost=validated_data.get("is_fixed_cost", False),
             is_additional_service=validated_data.get("is_additional_service", False),
             color=validated_data.get("color", "#3b82f6"),
+            icon=validated_data.get("icon"),
             created_by=validated_data.get("created_by"),
             updated_by=validated_data.get("updated_by"),
         )
@@ -162,5 +170,6 @@ class ServiceSerializer(BaseModelSerializer):
                 "is_additional_service", instance.is_additional_service
             ),
             color=validated_data.get("color", instance.color),
+            icon=validated_data.get("icon", UNSET),
             updated_by=validated_data.get("updated_by"),
         )

@@ -27,6 +27,33 @@ const form = reactive({
   name: '',
 })
 
+const iconFile = ref<File | null>(null)
+const iconCleared = ref(false)
+const iconPreview = ref<string | null>(null)
+
+function setIconPreview(url: string | null) {
+  if (iconPreview.value?.startsWith('blob:')) URL.revokeObjectURL(iconPreview.value)
+  iconPreview.value = url
+}
+
+function onIconChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0] ?? null
+  iconFile.value = file
+  iconCleared.value = false
+  setIconPreview(file ? URL.createObjectURL(file) : null)
+}
+
+function clearIcon() {
+  iconFile.value = null
+  iconCleared.value = true
+  setIconPreview(null)
+}
+
+function iconPayload(): File | null | undefined {
+  if (iconFile.value) return iconFile.value
+  return iconCleared.value ? null : undefined
+}
+
 const serviceCountByCategory = computed(() => {
   const counts = new Map<number, number>()
   for (const service of services.items) {
@@ -42,6 +69,9 @@ function servicesCount(categoryId: number) {
 function resetForm() {
   editingId.value = null
   form.name = ''
+  iconFile.value = null
+  iconCleared.value = false
+  setIconPreview(null)
   formError.value = null
 }
 
@@ -53,6 +83,9 @@ function openCreate() {
 function openEdit(category: ServiceCategory) {
   editingId.value = category.id
   form.name = category.name
+  iconFile.value = null
+  iconCleared.value = false
+  setIconPreview(category.icon)
   formError.value = null
   dialogOpen.value = true
 }
@@ -86,7 +119,7 @@ async function onSubmit() {
     return
   }
 
-  const payload = { name: form.name.trim() }
+  const payload = { name: form.name.trim(), icon: iconPayload() }
 
   saving.value = true
   try {
@@ -146,6 +179,7 @@ onMounted(() => {
           <thead>
             <tr>
               <th>#</th>
+              <th>الأيقونة</th>
               <th>الاسم</th>
               <th>عدد الخدمات</th>
               <th>إجراءات</th>
@@ -153,13 +187,16 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-if="categories.loading">
-              <td colspan="4" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="5" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="categories.items.length === 0">
-              <td colspan="4" class="ui-empty">لا توجد خدمات رئيسية بعد.</td>
+              <td colspan="5" class="ui-empty">لا توجد خدمات رئيسية بعد.</td>
             </tr>
             <tr v-for="(category, i) in categories.items" :key="category.id">
               <td>{{ i + 1 }}</td>
+              <td>
+                <img v-if="category.icon" :src="category.icon" alt="" class="icon-cell" />
+              </td>
               <td>{{ category.name }}</td>
               <td>{{ servicesCount(category.id) }}</td>
               <td>
@@ -185,6 +222,17 @@ onMounted(() => {
           <UiInput id="category-name" v-model="form.name" required />
         </div>
 
+        <div class="ui-field">
+          <UiLabel html-for="category-icon">الأيقونة</UiLabel>
+          <div class="icon-field">
+            <img v-if="iconPreview" :src="iconPreview" alt="" class="icon-img" />
+            <input id="category-icon" type="file" accept="image/*" @change="onIconChange" />
+            <UiButton v-if="iconPreview" type="button" variant="outline" size="sm" @click="clearIcon">
+              إزالة
+            </UiButton>
+          </div>
+        </div>
+
         <p v-if="formError" class="ui-error">{{ formError }}</p>
 
         <div class="ui-dialog-footer">
@@ -197,3 +245,28 @@ onMounted(() => {
     </UiDialog>
   </section>
 </template>
+
+<style scoped>
+.icon-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.icon-img {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  object-fit: cover;
+}
+
+.icon-cell {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  object-fit: cover;
+  display: block;
+}
+</style>

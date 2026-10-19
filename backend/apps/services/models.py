@@ -5,6 +5,7 @@ from utils.models import BaseModel
 
 class ServiceCategory(BaseModel):
     name = models.CharField(max_length=255)
+    icon = models.ImageField(upload_to="service_categories/", null=True, blank=True)
 
     class Meta:
         ordering = ["name", "id"]
@@ -44,6 +45,7 @@ class Service(BaseModel):
     is_fixed_cost = models.BooleanField(default=False)
     is_additional_service = models.BooleanField(default=False)
     color = models.CharField(max_length=7, default="#3b82f6")
+    icon = models.ImageField(upload_to="services/", null=True, blank=True)
 
     class Meta:
         ordering = ["name", "id"]
