@@ -67,6 +67,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                 quantity=data.get("quantity"),
                 length=data.get("length"),
                 width=data.get("width"),
+                measure=data.get("measure"),
                 discount_amount=data.get("discount_amount", Decimal("0")),
                 piece=data.get("piece"),
                 piece_quantity=data.get("piece_quantity"),
@@ -111,6 +112,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
                     quantity=data.get("quantity"),
                     length=data.get("length"),
                     width=data.get("width"),
+                    measure=data.get("measure"),
                     discount_amount=data.get("discount_amount"),
                     updated_by=user,
                 )

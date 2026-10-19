@@ -10,10 +10,17 @@ export function computeLineSubtotal(opts: {
   quantity?: number | null
   length?: number | null
   width?: number | null
+  measure?: number | null
 }): number {
-  const { costMethod, unitPrice, quantity, length, width } = opts
+  const { costMethod, unitPrice, quantity, length, width, measure } = opts
   if (costMethod === 'fixed') return roundMoney(unitPrice)
   if (costMethod === 'quantity') return roundMoney(unitPrice * (quantity ?? 0))
+  if (
+    measure != null &&
+    (costMethod === 'one_dimension' || costMethod === 'two_dimensions')
+  ) {
+    return roundMoney(unitPrice * measure)
+  }
   if (costMethod === 'one_dimension') {
     const dim = width ?? length ?? 0
     return roundMoney(unitPrice * dim * dim)

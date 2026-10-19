@@ -156,6 +156,42 @@ class InvoiceService:
         return int(current or 0) + 1
 
     @staticmethod
+    def _resolve_dimensions(
+        *,
+        cost_method: str,
+        piece: InvoicePiece,
+        measure: Decimal | None,
+    ) -> tuple[Decimal | None, Decimal | None]:
+        """Dimensions used for a line; ignored when a manual measure is given."""
+        if cost_method in (Service.CostMethod.ONE_DIMENSION, "area"):
+            if measure is not None:
+                return None, None
+            w = piece.width if piece.width is not None else piece.length
+            if w is None:
+                raise ValidationError(
+                    {"width": "Width is required for one dimension cost method."}
+                )
+            return None, w
+        if cost_method in (Service.CostMethod.TWO_DIMENSIONS, "perimeter"):
+            if measure is not None:
+                return None, None
+            if piece.length is None or piece.width is None:
+                raise ValidationError(
+                    {
+                        "length": (
+                            "Length and width are required for two dimensions cost "
+                            "method."
+                        ),
+                        "width": (
+                            "Length and width are required for two dimensions cost "
+                            "method."
+                        ),
+                    }
+                )
+            return piece.length, piece.width
+        return None, None
+
+    @staticmethod
     def _build_item_amounts(
         *,
         cost_method: str,
@@ -164,6 +200,7 @@ class InvoiceService:
         length: Decimal | None,
         width: Decimal | None,
         discount_amount: Decimal,
+        measure: Decimal | None = None,
     ) -> tuple[Decimal, Decimal]:
         line_subtotal = compute_line_subtotal(
             cost_method=cost_method,
@@ -171,6 +208,7 @@ class InvoiceService:
             quantity=quantity,
             length=length,
             width=width,
+            measure=measure,
         )
         line_total = apply_discount(
             amount=line_subtotal,
@@ -187,35 +225,12 @@ class InvoiceService:
         unit_price: Decimal,
         quantity: Decimal | None,
         discount_amount: Decimal,
+        measure: Decimal | None = None,
         updated_by: AbstractBaseUser | None = None,
     ) -> InvoiceItem:
-        if item.cost_method in (Service.CostMethod.ONE_DIMENSION, "area"):
-            w = piece.width if piece.width is not None else piece.length
-            if w is None:
-                raise ValidationError(
-                    {"width": "Width is required for one dimension cost method."}
-                )
-            length = None
-            width = w
-        elif item.cost_method in (Service.CostMethod.TWO_DIMENSIONS, "perimeter"):
-            if piece.length is None or piece.width is None:
-                raise ValidationError(
-                    {
-                        "length": (
-                            "Length and width are required for two dimensions cost "
-                            "method."
-                        ),
-                        "width": (
-                            "Length and width are required for two dimensions cost "
-                            "method."
-                        ),
-                    }
-                )
-            length = piece.length
-            width = piece.width
-        else:
-            length = None
-            width = None
+        length, width = InvoiceService._resolve_dimensions(
+            cost_method=item.cost_method, piece=piece, measure=measure
+        )
 
         line_subtotal, line_total = InvoiceService._build_item_amounts(
             cost_method=item.cost_method,
@@ -224,8 +239,10 @@ class InvoiceService:
             length=length,
             width=width,
             discount_amount=discount_amount,
+            measure=measure,
         )
         item.unit_price = unit_price
+        item.measure = measure
         item.quantity = quantity
         item.length = length
         item.width = width
@@ -237,6 +254,7 @@ class InvoiceService:
             "quantity",
             "length",
             "width",
+            "measure",
             "discount_amount",
             "line_subtotal",
             "line_total",
@@ -257,6 +275,7 @@ class InvoiceService:
                 unit_price=item.unit_price,
                 quantity=item.quantity,
                 discount_amount=item.discount_amount,
+                measure=item.measure,
             )
 
     @staticmethod
@@ -270,39 +289,16 @@ class InvoiceService:
         discount_amount: Decimal,
         created_by: AbstractBaseUser | None,
         updated_by: AbstractBaseUser | None,
+        measure: Decimal | None = None,
     ) -> InvoiceItem:
         if service.deleted_at is not None:
             raise ValidationError({"service": "Cannot use a soft-deleted service."})
 
         price = quantize_money(service.cost if unit_price is None else unit_price)
         cost_method = service.cost_method
-        if cost_method in (Service.CostMethod.ONE_DIMENSION, "area"):
-            w = piece.width if piece.width is not None else piece.length
-            if w is None:
-                raise ValidationError(
-                    {"width": "Width is required for one dimension cost method."}
-                )
-            length = None
-            width = w
-        elif cost_method in (Service.CostMethod.TWO_DIMENSIONS, "perimeter"):
-            if piece.length is None or piece.width is None:
-                raise ValidationError(
-                    {
-                        "length": (
-                            "Length and width are required for two dimensions cost "
-                            "method."
-                        ),
-                        "width": (
-                            "Length and width are required for two dimensions cost "
-                            "method."
-                        ),
-                    }
-                )
-            length = piece.length
-            width = piece.width
-        else:
-            length = None
-            width = None
+        length, width = InvoiceService._resolve_dimensions(
+            cost_method=cost_method, piece=piece, measure=measure
+        )
 
         line_subtotal, line_total = InvoiceService._build_item_amounts(
             cost_method=cost_method,
@@ -311,6 +307,7 @@ class InvoiceService:
             length=length,
             width=width,
             discount_amount=quantize_money(discount_amount),
+            measure=measure,
         )
         return InvoiceItem.objects.create(
             invoice=invoice,
@@ -323,6 +320,7 @@ class InvoiceService:
             quantity=quantity,
             length=length,
             width=width,
+            measure=measure,
             discount_amount=quantize_money(discount_amount),
             line_subtotal=line_subtotal,
             line_total=line_total,
@@ -463,6 +461,7 @@ class InvoiceService:
                 service=payload["service"],
                 unit_price=payload.get("unit_price"),
                 quantity=payload.get("quantity"),
+                measure=payload.get("measure"),
                 discount_amount=payload.get("discount_amount", Decimal("0")),
                 created_by=created_by,
                 updated_by=updated_by,
@@ -538,6 +537,7 @@ class InvoiceService:
         quantity: Decimal | None = None,
         length: Decimal | None = None,
         width: Decimal | None = None,
+        measure: Decimal | None = None,
         discount_amount: Decimal = Decimal("0"),
         piece: InvoicePiece | None = None,
         piece_quantity: Decimal | None = None,
@@ -584,6 +584,7 @@ class InvoiceService:
             service=service,
             unit_price=unit_price,
             quantity=quantity,
+            measure=measure,
             discount_amount=discount_amount,
             created_by=created_by,
             updated_by=updated_by,
@@ -600,6 +601,7 @@ class InvoiceService:
         quantity: Decimal | None = None,
         length: Decimal | None = None,
         width: Decimal | None = None,
+        measure: Decimal | None = None,
         discount_amount: Decimal | None = None,
         updated_by: AbstractBaseUser | None = None,
     ) -> Invoice:
@@ -639,6 +641,7 @@ class InvoiceService:
             unit_price=price,
             quantity=qty,
             discount_amount=disc,
+            measure=item.measure if measure is None else measure,
             updated_by=updated_by,
         )
         return InvoiceService._recalculate_locked(invoice)

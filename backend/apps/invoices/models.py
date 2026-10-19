@@ -206,6 +206,12 @@ class InvoiceItem(BaseModel):
         null=True,
         blank=True,
     )
+    measure = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        null=True,
+        blank=True,
+    )
     discount_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,

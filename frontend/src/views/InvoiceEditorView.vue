@@ -27,6 +27,7 @@ interface DraftService {
   costMethod: CostMethod
   unitPrice: string
   quantity: string
+  measure: string
   discountAmount: string
 }
 
@@ -96,6 +97,8 @@ const itemForm = reactive({
   unit_price: '',
   total_price: '',
   quantity: '',
+  measure: '',
+  measureManual: false,
   discount_amount: '0',
 })
 
@@ -248,7 +251,22 @@ function isFixedCost(service: Service) {
   return service.cost_method === 'fixed' || service.is_fixed_cost
 }
 
-function updateCalculatedPrices(source: 'unit' | 'total' | 'dims') {
+function autoMeasure(
+  method: CostMethod,
+  length: number | null,
+  width: number | null,
+): number | null {
+  if (needsOneDimension(method)) {
+    const dim = width ?? length
+    return dim == null ? null : dim * dim
+  }
+  if (needsTwoDimensions(method)) {
+    return length != null && width != null ? 2 * (length + width) : null
+  }
+  return null
+}
+
+function updateCalculatedPrices(source: 'unit' | 'total' | 'dims' | 'measure') {
   const service = selectedService.value
   if (!service) return
 
@@ -257,14 +275,19 @@ function updateCalculatedPrices(source: 'unit' | 'total' | 'dims') {
   const width = pieceForm.width === '' ? null : Number(pieceForm.width)
   const quantity = itemForm.quantity === '' ? null : Number(itemForm.quantity)
 
+  if (source === 'measure') {
+    itemForm.measureManual = itemForm.measure !== ''
+  }
+  if (needsDimensions(method) && !itemForm.measureManual) {
+    const auto = autoMeasure(method, length, width)
+    itemForm.measure = auto == null ? '' : String(roundMoney(auto))
+  }
+  const manualMeasure =
+    itemForm.measureManual && itemForm.measure !== '' ? Number(itemForm.measure) : null
+
   let measure = 1
-  if (method === 'one_dimension' || (method as string) === 'area') {
-    const dim = width ?? length ?? 0
-    measure = dim * dim
-  } else if (method === 'two_dimensions' || (method as string) === 'perimeter') {
-    if (length != null && width != null) {
-      measure = 2 * (length + width)
-    }
+  if (needsDimensions(method)) {
+    measure = manualMeasure ?? autoMeasure(method, length, width) ?? 1
   } else if (method === 'quantity') {
     measure = quantity ?? 1
   }
@@ -282,6 +305,7 @@ function updateCalculatedPrices(source: 'unit' | 'total' | 'dims') {
       quantity,
       length,
       width,
+      measure: manualMeasure,
     })
     itemForm.total_price = calculatedTotal.toString()
   }
@@ -342,6 +366,8 @@ function resetServicePicker() {
   itemForm.unit_price = ''
   itemForm.total_price = ''
   itemForm.quantity = ''
+  itemForm.measure = ''
+  itemForm.measureManual = false
   itemForm.discount_amount = '0'
 }
 
@@ -371,6 +397,7 @@ function onServiceChange() {
   if (!service) return
   itemForm.unit_price = service.cost
   itemForm.category = service.service_category
+  itemForm.measureManual = false
   if (isFixedCost(service) || !needsQuantity(service.cost_method)) {
     itemForm.quantity = ''
   }
@@ -462,10 +489,15 @@ const showTwoDimensions = computed(() => {
   return draftNeedsTwoDimensions.value
 })
 
+function manualMeasureValue(): string {
+  return itemForm.measureManual && itemForm.measure !== '' ? itemForm.measure : ''
+}
+
 function serviceAmount(row: {
   costMethod: CostMethod
   unitPrice: string
   quantity: string
+  measure: string
   discountAmount: string
 }): number {
   const length = pieceForm.length === '' ? null : Number(pieceForm.length)
@@ -476,6 +508,7 @@ function serviceAmount(row: {
     quantity: row.quantity === '' ? null : Number(row.quantity),
     length,
     width,
+    measure: row.measure === '' ? null : Number(row.measure),
   })
   return applyDiscount(subtotal, Number(row.discountAmount) || 0)
 }
@@ -491,6 +524,7 @@ const previewServices = computed(() => {
       costMethod: selectedService.value.cost_method,
       unitPrice: itemForm.unit_price,
       quantity: itemForm.quantity,
+      measure: manualMeasureValue(),
       discountAmount: itemForm.discount_amount,
     })
   }
@@ -508,11 +542,17 @@ function validateServiceRow(
   unitPrice: string,
   quantity: string,
   requireDimensions: boolean,
+  measure = '',
 ): string | null {
   if (!service) return 'اختر خدمة.'
   if (!unitPrice) return 'السعر مطلوب.'
   if (needsQuantity(service.cost_method) && !quantity) return 'الكمية مطلوبة.'
-  if (requireDimensions && !isFixedCost(service) && service.cost_method !== 'fixed') {
+  if (
+    requireDimensions &&
+    !measure &&
+    !isFixedCost(service) &&
+    service.cost_method !== 'fixed'
+  ) {
     if (needsTwoDimensions(service.cost_method) && (!pieceForm.length || !pieceForm.width)) {
       return 'الطول والعرض مطلوبان لهذه الخدمة.'
     }
@@ -526,7 +566,13 @@ function validateServiceRow(
 function addServiceToDraft() {
   itemError.value = null
   const service = selectedService.value
-  const error = validateServiceRow(service, itemForm.unit_price, itemForm.quantity, true)
+  const error = validateServiceRow(
+    service,
+    itemForm.unit_price,
+    itemForm.quantity,
+    true,
+    manualMeasureValue(),
+  )
   if (error || !service) {
     itemError.value = error
     return
@@ -539,6 +585,7 @@ function addServiceToDraft() {
     costMethod: service.cost_method,
     unitPrice: itemForm.unit_price,
     quantity: itemForm.quantity,
+    measure: manualMeasureValue(),
     discountAmount: itemForm.discount_amount || '0',
   })
   resetServicePicker()
@@ -561,6 +608,7 @@ async function addStandaloneItem() {
       service: service.id,
       unit_price: itemForm.unit_price,
       quantity: itemForm.quantity || undefined,
+      measure: manualMeasureValue() || undefined,
       discount_amount: itemForm.discount_amount || '0',
       length: pieceForm.length || undefined,
       width: pieceForm.width || undefined,
@@ -597,12 +645,14 @@ function toItemPayload(row: DraftService | {
   serviceId: number
   unitPrice: string
   quantity: string
+  measure: string
   discountAmount: string
 }): InvoicePieceItemPayload {
   return {
     service: row.serviceId,
     unit_price: row.unitPrice,
     quantity: row.quantity || undefined,
+    measure: row.measure || undefined,
     discount_amount: row.discountAmount || '0',
   }
 }
@@ -618,6 +668,7 @@ async function addPiece() {
       itemForm.unit_price,
       itemForm.quantity,
       true,
+      manualMeasureValue(),
     )
     if (error) {
       itemError.value = error
@@ -631,6 +682,7 @@ async function addPiece() {
       costMethod: selectedService.value.cost_method,
       unitPrice: itemForm.unit_price,
       quantity: itemForm.quantity,
+      measure: manualMeasureValue(),
       discountAmount: itemForm.discount_amount || '0',
     })
   }
@@ -639,8 +691,8 @@ async function addPiece() {
     itemError.value = 'أضف خدمة واحدة على الأقل للقطعة.'
     return
   }
-  const requiresTwo = pending.some((row) => needsTwoDimensions(row.costMethod))
-  const requiresOne = pending.some((row) => needsOneDimension(row.costMethod))
+  const requiresTwo = pending.some((row) => !row.measure && needsTwoDimensions(row.costMethod))
+  const requiresOne = pending.some((row) => !row.measure && needsOneDimension(row.costMethod))
 
   if (requiresTwo && (!pieceForm.length || !pieceForm.width)) {
     itemError.value = 'الطول والعرض مطلوبان.'
@@ -657,7 +709,7 @@ async function addPiece() {
       await invoices.addPiece(invoice.value.id, {
         length: pieceForm.length || undefined,
         width: pieceForm.width || undefined,
-        quantity: '1',
+        quantity: pieceForm.quantity || '1',
         items: pending.map((row) => toItemPayload(row)),
       })
     } catch (err) {
@@ -1314,6 +1366,24 @@ watch(
             </div>
           </div>
 
+          <!-- 2.5 عدد القطع + النتيجة (قابلة للتعديل وتتجاهل الطول والعرض) -->
+          <div class="grid">
+            <div>
+              <UiLabel>العدد</UiLabel>
+              <UiInput v-model="pieceForm.quantity" type="number" min="1" step="1" />
+            </div>
+            <div v-if="selectedService && needsDimensions(selectedService.cost_method)">
+              <UiLabel>النتيجة (المقياس المستخدم في السعر)</UiLabel>
+              <UiInput
+                v-model="itemForm.measure"
+                type="number"
+                min="0"
+                step="0.001"
+                @input="updateCalculatedPrices('measure')"
+              />
+            </div>
+          </div>
+
           <!-- 3. الكمية للخدمة (إن كانت ذات كمية) -->
           <div v-if="selectedService && needsQuantity(selectedService.cost_method)" class="grid">
             <div>
@@ -1381,6 +1451,10 @@ watch(
             <div class="summary-row total">
               <span>إجمالي القطعة</span>
               <strong>{{ piecePreview.one.toFixed(2) }}</strong>
+            </div>
+            <div v-if="piecePreview.qty !== 1" class="summary-row total">
+              <span>الإجمالي × العدد ({{ piecePreview.qty }})</span>
+              <strong>{{ piecePreview.all.toFixed(2) }}</strong>
             </div>
           </div>
 

@@ -32,6 +32,7 @@ class InvoiceItemSerializer(BaseModelSerializer):
             "quantity",
             "length",
             "width",
+            "measure",
             "discount_amount",
             "line_subtotal",
             "line_total",
@@ -176,6 +177,9 @@ class InvoiceItemWriteSerializer(serializers.Serializer):
     width = serializers.DecimalField(
         max_digits=12, decimal_places=3, required=False, allow_null=True
     )
+    measure = serializers.DecimalField(
+        max_digits=12, decimal_places=3, required=False, allow_null=True
+    )
     discount_amount = serializers.DecimalField(
         max_digits=12, decimal_places=2, required=False, default=Decimal("0")
     )
@@ -211,6 +215,9 @@ class InvoicePieceItemWriteSerializer(serializers.Serializer):
         max_digits=12, decimal_places=2, required=False, allow_null=True
     )
     quantity = serializers.DecimalField(
+        max_digits=12, decimal_places=3, required=False, allow_null=True
+    )
+    measure = serializers.DecimalField(
         max_digits=12, decimal_places=3, required=False, allow_null=True
     )
     discount_amount = serializers.DecimalField(

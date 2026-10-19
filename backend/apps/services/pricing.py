@@ -20,6 +20,7 @@ def compute_line_subtotal(
     quantity: Decimal | None = None,
     length: Decimal | None = None,
     width: Decimal | None = None,
+    measure: Decimal | None = None,
 ) -> Decimal:
     """Pure pricing engine - server source of truth for line amounts before item
     discount.
@@ -38,6 +39,17 @@ def compute_line_subtotal(
         if quantity <= 0:
             raise ValidationError({"quantity": "Quantity must be greater than 0."})
         return quantize_money(unit_price * quantity)
+
+    is_dimensional = cost_method in (
+        Service.CostMethod.ONE_DIMENSION,
+        "area",
+        Service.CostMethod.TWO_DIMENSIONS,
+        "perimeter",
+    )
+    if is_dimensional and measure is not None:
+        if measure < 0:
+            raise ValidationError({"measure": "Measure must be >= 0."})
+        return quantize_money(unit_price * measure)
 
     if cost_method in (Service.CostMethod.ONE_DIMENSION, "area"):
         dim = width if width is not None else length

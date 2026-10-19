@@ -16,6 +16,7 @@ export interface InvoiceItem {
   quantity: string | null
   length: string | null
   width: string | null
+  measure: string | null
   discount_amount: string
   line_subtotal: string
   line_total: string
@@ -77,6 +78,7 @@ export interface InvoiceItemPayload {
   quantity?: string
   length?: string
   width?: string
+  measure?: string
   discount_amount?: string
   piece?: number
   piece_quantity?: string
@@ -86,6 +88,7 @@ export interface InvoicePieceItemPayload {
   service: number
   unit_price?: string
   quantity?: string
+  measure?: string
   discount_amount?: string
 }
 

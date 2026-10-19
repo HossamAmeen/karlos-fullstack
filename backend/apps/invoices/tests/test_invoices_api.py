@@ -338,6 +338,29 @@ class InvoiceApiTests(APITestCase):
         self.assertEqual(response.data["total"], "180.00")
         self.assertEqual(len(response.data["items"]), 2)
 
+    def test_add_piece_with_manual_measure_ignores_dimensions(self) -> None:
+        self.authenticate()
+        invoice = self.create_draft()
+        response = self.client.post(
+            reverse("invoice-add-piece", args=[invoice["id"]]),
+            {
+                "quantity": "3",
+                "items": [
+                    {
+                        "service": self.two_dim_service.id,
+                        "unit_price": "80.00",
+                        "measure": "30",
+                    },
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        piece = response.data["pieces"][0]
+        self.assertEqual(piece["items"][0]["measure"], "30.000")
+        self.assertEqual(piece["piece_subtotal"], "2400.00")
+        self.assertEqual(piece["piece_total"], "7200.00")
+
     def test_add_service_to_existing_piece(self) -> None:
         self.authenticate()
         invoice = self.create_draft()
