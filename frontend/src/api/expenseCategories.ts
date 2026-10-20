@@ -31,6 +31,17 @@ export interface ExpenseCategory extends Audit {
   expenses_count: number
 }
 
+export interface ExpenseCategoryDetail extends ExpenseCategory {
+  total_amount: string
+  last_expenses: {
+    id: number
+    amount: string
+    description: string
+    expense_date: string
+    client_name: string | null
+  }[]
+}
+
 export interface ExpenseMainCategoryPayload {
   name: string
 }
@@ -69,6 +80,8 @@ export const expenseMainCategoriesApi = crud<
   ExpenseMainCategoryPayload
 >('/api/v1/expense-main-categories')
 
-export const expenseCategoriesApi = crud<ExpenseCategory, ExpenseCategoryPayload>(
-  '/api/v1/expense-categories',
-)
+export const expenseCategoriesApi = {
+  ...crud<ExpenseCategory, ExpenseCategoryPayload>('/api/v1/expense-categories'),
+  retrieve: (id: number) =>
+    apiFetch<ExpenseCategoryDetail>(`/api/v1/expense-categories/${id}/`),
+}

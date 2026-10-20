@@ -3,7 +3,11 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
-import type { ExpenseCategory } from '@/api/expenseCategories'
+import {
+  expenseCategoriesApi,
+  type ExpenseCategory,
+  type ExpenseCategoryDetail,
+} from '@/api/expenseCategories'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -110,6 +114,33 @@ async function onDelete(item: ExpenseCategory) {
   }
 }
 
+const detailOpen = ref(false)
+const detailLoading = ref(false)
+const detailError = ref<string | null>(null)
+const detail = ref<ExpenseCategoryDetail | null>(null)
+
+async function openDetail(item: ExpenseCategory) {
+  detail.value = null
+  detailError.value = null
+  detailOpen.value = true
+  detailLoading.value = true
+  try {
+    detail.value = await expenseCategoriesApi.retrieve(item.id)
+  } catch (err) {
+    await handleAuthError(err)
+    detailError.value = err instanceof ApiError ? err.message : 'فشل التحميل.'
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+function goToExpenses(item: ExpenseCategory) {
+  void router.push({
+    name: 'expenses',
+    query: { main_category: item.main_category, category: item.id },
+  })
+}
+
 function selectMain(id: number) {
   mainFilter.value = id
   void reload()
@@ -178,6 +209,8 @@ onMounted(async () => {
               <td>{{ item.is_shown ? 'نعم' : 'لا' }}</td>
               <td>
                 <div class="row-actions">
+                  <UiButton variant="outline" size="sm" @click="goToExpenses(item)">المصروفات</UiButton>
+                  <UiButton variant="outline" size="sm" @click="openDetail(item)">تفاصيل</UiButton>
                   <UiButton variant="outline" size="sm" @click="openEdit(item)">تعديل</UiButton>
                   <UiButton variant="destructive" size="sm" @click="onDelete(item)">حذف</UiButton>
                 </div>
@@ -225,6 +258,43 @@ onMounted(async () => {
           <UiButton type="button" variant="outline" @click="closeDialog">إلغاء</UiButton>
         </div>
       </form>
+    </UiDialog>
+
+    <UiDialog
+      v-model:open="detailOpen"
+      :title="detail ? detail.name : 'تفاصيل التصنيف'"
+      description="آخر 5 مصروفات في هذا التصنيف."
+    >
+      <p v-if="detailLoading">جارٍ التحميل…</p>
+      <p v-else-if="detailError" class="ui-error">{{ detailError }}</p>
+      <template v-else-if="detail">
+        <p>التصنيف الرئيسي: {{ detail.main_category_name }}</p>
+        <p>عدد المصروفات: {{ detail.expenses_count }}</p>
+        <p>إجمالي المصروفات: {{ detail.total_amount }}</p>
+        <div class="ui-table-wrap">
+          <table class="ui-table">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>الوصف</th>
+                <th>العميل</th>
+                <th>المبلغ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="detail.last_expenses.length === 0">
+                <td colspan="4" class="ui-empty">لا توجد مصروفات.</td>
+              </tr>
+              <tr v-for="e in detail.last_expenses" :key="e.id">
+                <td>{{ e.expense_date }}</td>
+                <td>{{ e.description }}</td>
+                <td>{{ e.client_name ?? '—' }}</td>
+                <td>{{ e.amount }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </UiDialog>
   </section>
 </template>

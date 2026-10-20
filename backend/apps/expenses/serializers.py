@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db.models import Sum
 from rest_framework import serializers
 
 from apps.expenses.models import (
@@ -134,6 +135,35 @@ class ExpenseCategorySerializer(BaseModelSerializer):
             is_shown=validated_data.get("is_shown", instance.is_shown),
             updated_by=validated_data.get("updated_by"),
         )
+
+
+class ExpenseCategoryDetailSerializer(ExpenseCategorySerializer):
+    total_amount = serializers.SerializerMethodField()
+    last_expenses = serializers.SerializerMethodField()
+
+    class Meta(ExpenseCategorySerializer.Meta):
+        fields = (*ExpenseCategorySerializer.Meta.fields, "total_amount", "last_expenses")
+        read_only_fields = (
+            *ExpenseCategorySerializer.Meta.read_only_fields,
+            "total_amount",
+            "last_expenses",
+        )
+
+    def get_total_amount(self, obj: ExpenseCategory) -> Decimal:
+        return obj.expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    def get_last_expenses(self, obj: ExpenseCategory) -> list[dict]:
+        qs = obj.expenses.select_related("client").order_by("-expense_date", "-id")[:5]
+        return [
+            {
+                "id": e.id,
+                "amount": e.amount,
+                "description": e.description,
+                "expense_date": e.expense_date,
+                "client_name": e.client.name if e.client else None,
+            }
+            for e in qs
+        ]
 
 
 class ExpenseSerializer(BaseModelSerializer):

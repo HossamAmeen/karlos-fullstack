@@ -28,6 +28,8 @@ All models inherit audit fields + soft delete from `BaseModel`.
 
 Filters: `main_category`, `name`, `is_shown`; search on name / main category name.
 
+Retrieve (`GET /api/v1/expense-categories/{id}/`) additionally returns `total_amount` and `last_expenses` (latest 5: id, amount, description, expense_date, client_name). The list endpoint does not include them. The categories page "المصروفات" button links to `/expenses?main_category=&category=`, which pre-applies those filters.
+
 ### Expense (`/api/v1/expenses/`)
 
 | Field | Type | Required | Notes |

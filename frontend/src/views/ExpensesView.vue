@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
 import type { Expense } from '@/api/expenses'
@@ -22,6 +22,7 @@ const expenses = useExpensesStore()
 const lookups = useExpenseCategoriesStore()
 const clientsStore = useClientsStore()
 const router = useRouter()
+const route = useRoute()
 
 const CATEGORY_ORDERING = 'main_category__name,order_number,name'
 
@@ -110,6 +111,10 @@ async function handleAuthError(err: unknown) {
 }
 
 async function load() {
+  const qMain = Number(route.query.main_category)
+  const qCat = Number(route.query.category)
+  if (qMain) expenses.mainCategoryFilter = qMain
+  if (qCat) expenses.categoryFilter = qCat
   try {
     await Promise.all([
       expenses.fetchAll(),

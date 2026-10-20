@@ -15,6 +15,7 @@ from .selectors import (
     get_main_categories,
 )
 from .serializers import (
+    ExpenseCategoryDetailSerializer,
     ExpenseCategorySerializer,
     ExpenseMainCategorySerializer,
     ExpenseSerializer,
@@ -56,6 +57,11 @@ class ExpenseCategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return get_categories()
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return ExpenseCategoryDetailSerializer
+        return super().get_serializer_class()
 
     def destroy(self, request, *args, **kwargs):
         ExpenseCategoryService.delete(category=self.get_object())
