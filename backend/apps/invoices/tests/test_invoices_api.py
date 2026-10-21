@@ -98,7 +98,7 @@ class InvoiceApiTests(APITestCase):
             items_url,
             {
                 "service": self.one_dim_service.id,
-                "width": "3.00",
+                "width": "300.00",
                 "unit_price": "10.00",
             },
             format="json",
@@ -120,8 +120,8 @@ class InvoiceApiTests(APITestCase):
             items_url,
             {
                 "service": self.two_dim_service.id,
-                "length": "1.00",
-                "width": "1.00",
+                "length": "100.00",
+                "width": "100.00",
             },
             format="json",
         )
@@ -317,8 +317,8 @@ class InvoiceApiTests(APITestCase):
         response = self.client.post(
             pieces_url,
             {
-                "length": "3.000",
-                "width": "2.000",
+                "length": "300.000",
+                "width": "200.000",
                 "quantity": "2",
                 "items": [
                     {"service": self.one_dim_service.id, "unit_price": "10.00"},
@@ -369,8 +369,8 @@ class InvoiceApiTests(APITestCase):
             items_url,
             {
                 "service": self.one_dim_service.id,
-                "length": "3.000",
-                "width": "2.000",
+                "length": "300.000",
+                "width": "200.000",
             },
             format="json",
         )
@@ -397,8 +397,8 @@ class InvoiceApiTests(APITestCase):
         created = self.client.post(
             pieces_url,
             {
-                "length": "3.000",
-                "width": "2.000",
+                "length": "300.000",
+                "width": "200.000",
                 "items": [
                     {"service": self.one_dim_service.id},
                     {"service": self.two_dim_service.id},
@@ -410,7 +410,7 @@ class InvoiceApiTests(APITestCase):
         piece_url = reverse("invoice-piece-detail", args=[invoice["id"], piece_id])
         updated = self.client.patch(
             piece_url,
-            {"length": "4.000", "width": "1.000"},
+            {"length": "400.000", "width": "100.000"},
             format="json",
         )
         self.assertEqual(updated.status_code, status.HTTP_200_OK, updated.data)
@@ -442,7 +442,7 @@ class InvoiceApiTests(APITestCase):
         pieces_url = reverse("invoice-add-piece", args=[invoice["id"]])
         response = self.client.post(
             pieces_url,
-            {"length": "3.000", "width": "2.000", "items": []},
+            {"length": "300.000", "width": "200.000", "items": []},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

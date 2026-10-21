@@ -4,12 +4,16 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.services.models import Service, ServiceCategory
+from apps.services.selectors import ServiceCategorySelector
 from apps.services.services import UNSET, ServiceCategoryService, ServiceService
 from utils.serializers import BaseModelSerializer
 
 
 class ServiceCategorySerializer(BaseModelSerializer):
     icon = serializers.ImageField(required=False, allow_null=True)
+    expense_category_name = serializers.CharField(
+        source="expense_category.name", read_only=True, default=None
+    )
 
     class Meta:
         model = ServiceCategory
@@ -17,6 +21,8 @@ class ServiceCategorySerializer(BaseModelSerializer):
             "id",
             "name",
             "icon",
+            "expense_category",
+            "expense_category_name",
             "created_at",
             "updated_at",
             "deleted_at",
@@ -25,6 +31,7 @@ class ServiceCategorySerializer(BaseModelSerializer):
         )
         read_only_fields = (
             "id",
+            "expense_category_name",
             "created_at",
             "updated_at",
             "deleted_at",
@@ -51,6 +58,7 @@ class ServiceCategorySerializer(BaseModelSerializer):
         return ServiceCategoryService.create(
             name=validated_data["name"],
             icon=validated_data.get("icon"),
+            expense_category=validated_data.get("expense_category"),
             created_by=validated_data.get("created_by"),
             updated_by=validated_data.get("updated_by"),
         )
@@ -61,8 +69,48 @@ class ServiceCategorySerializer(BaseModelSerializer):
             category=instance,
             name=validated_data.get("name", instance.name),
             icon=validated_data.get("icon", UNSET),
+            expense_category=validated_data.get("expense_category", UNSET),
             updated_by=validated_data.get("updated_by"),
         )
+
+
+class ServiceCategoryDetailSerializer(ServiceCategorySerializer):
+    invoices_count = serializers.SerializerMethodField()
+    invoices_total = serializers.SerializerMethodField()
+    last_invoices = serializers.SerializerMethodField()
+    expenses_count = serializers.SerializerMethodField()
+    expenses_total = serializers.SerializerMethodField()
+
+    class Meta(ServiceCategorySerializer.Meta):
+        _extra = (
+            "invoices_count",
+            "invoices_total",
+            "last_invoices",
+            "expenses_count",
+            "expenses_total",
+        )
+        fields = (*ServiceCategorySerializer.Meta.fields, *_extra)
+        read_only_fields = (*ServiceCategorySerializer.Meta.read_only_fields, *_extra)
+
+    def _invoice_stats(self, obj: ServiceCategory) -> dict:
+        if not hasattr(obj, "_invoice_stats"):
+            obj._invoice_stats = ServiceCategorySelector.invoice_stats(category=obj)
+        return obj._invoice_stats
+
+    def get_invoices_count(self, obj: ServiceCategory) -> int:
+        return self._invoice_stats(obj)["invoices_count"]
+
+    def get_invoices_total(self, obj: ServiceCategory) -> Decimal:
+        return self._invoice_stats(obj)["invoices_total"]
+
+    def get_last_invoices(self, obj: ServiceCategory) -> list[dict]:
+        return self._invoice_stats(obj)["last_invoices"]
+
+    def get_expenses_count(self, obj: ServiceCategory) -> int:
+        return ServiceCategorySelector.expense_stats(category=obj)["expenses_count"]
+
+    def get_expenses_total(self, obj: ServiceCategory) -> Decimal:
+        return ServiceCategorySelector.expense_stats(category=obj)["expenses_total"]
 
 
 class ServiceSerializer(BaseModelSerializer):

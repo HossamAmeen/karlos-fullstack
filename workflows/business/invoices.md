@@ -14,7 +14,7 @@ Example: piece `3 × 2` with area glass + perimeter polish + a fixed install fee
 
 | Field | Meaning |
 |-------|---------|
-| `length` / `width` | Shared dimensions for every service on the piece. Required when any service uses `area` or `perimeter`. |
+| `length` / `width` | **Centimetres** (converted to metres, ÷100, when pricing). Shared dimensions for every service on the piece. Required when any service uses `area` or `perimeter`. |
 | `quantity` | How many identical pieces. Default `1`. Must be `> 0`. |
 | `piece_subtotal` | Sum of service `line_total` values **for one** piece |
 | `piece_total` | `piece_subtotal × quantity` |
@@ -27,7 +27,7 @@ Invoice `subtotal` = sum of all `piece_total`. Invoice `total` = `subtotal` minu
 1. A piece must have at least one service.
 2. Dimensions live on the piece, not on each service. Changing `length` / `width` recalculates every service on that piece.
 3. When selecting a service in the invoice editor, if piece dimensions (`length` and `width`) are blank, they auto-fill from the service's `default_length` and `default_width` if configured.
-4. `area` uses `length × width`. `perimeter` uses `2 × (length + width)`.
+4. `area` uses `length × width`. `perimeter` uses `2 × (length + width)`. `length` / `width` are entered in cm and divided by 100 before pricing; `measure` is already in metres.
 5. Dimension services (`area` / `perimeter`) accept an optional item-level `measure` (e.g. `30` for `2×(5+10)`). When set, line subtotal = `unit_price × measure`, `length`/`width` are ignored (and not required). The editor pre-fills it from the dimensions and lets the user override it; piece `quantity` (count) then multiplies the piece subtotal.
 6. `fixed` and `quantity` services may sit on a piece that also has dimensions; `quantity` on an **item** is still the service count (holes, units), not the piece count.
 7. Deleting the last service on a piece deletes the piece.

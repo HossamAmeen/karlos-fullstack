@@ -10,6 +10,11 @@
 |-------|------|----------|-------|
 | id | integer | auto | Primary key |
 | name | string | yes | Display / search; **unique among active categories** |
+| expense_category | integer (FK) \| null | no | Linked `ExpenseCategory`; drives the expenses count/total in the detail view |
+
+### Detail endpoint
+
+`GET /api/v1/service-categories/{id}/` additionally returns `invoices_count`, `invoices_total`, `last_invoices` (5 latest) and `expenses_count`, `expenses_total`. Invoices are **confirmed** invoices containing the category's services; the amount is the category's share (`line_total × piece.quantity` of its items). Expenses are those of the linked `expense_category` (0 when unset).
 
 ### Audit fields (from BaseModel)
 

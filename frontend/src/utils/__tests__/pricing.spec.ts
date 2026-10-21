@@ -19,14 +19,14 @@ describe('pricing', () => {
 
   it('two dimensions uses perimeter, needs both sides', () => {
     expect(
-      computeLineSubtotal({ costMethod: 'two_dimensions', unitPrice: 5, length: 3, width: 2 }),
+      computeLineSubtotal({ costMethod: 'two_dimensions', unitPrice: 5, length: 300, width: 200 }),
     ).toBe(50)
-    expect(computeLineSubtotal({ costMethod: 'two_dimensions', unitPrice: 5, length: 3 })).toBe(0)
+    expect(computeLineSubtotal({ costMethod: 'two_dimensions', unitPrice: 5, length: 300 })).toBe(0)
   })
 
   it('manual measure overrides dimensions', () => {
     expect(
-      computeLineSubtotal({ costMethod: 'two_dimensions', unitPrice: 5, length: 3, width: 2, measure: 4 }),
+      computeLineSubtotal({ costMethod: 'two_dimensions', unitPrice: 5, length: 300, width: 200, measure: 4 }),
     ).toBe(20)
     expect(computeLineSubtotal({ costMethod: 'one_dimension', unitPrice: 10, measure: 2.5 })).toBe(25)
   })

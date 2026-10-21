@@ -17,7 +17,7 @@ import { useClientsStore } from '@/stores/clients'
 import { useInvoicesStore } from '@/stores/invoices'
 import { useServiceCategoriesStore } from '@/stores/serviceCategories'
 import { useServicesStore } from '@/stores/services'
-import { applyDiscount, computeLineSubtotal, roundMoney } from '@/utils/pricing'
+import { applyDiscount, CM_PER_METER, computeLineSubtotal, roundMoney } from '@/utils/pricing'
 
 interface DraftService {
   key: number
@@ -258,10 +258,10 @@ function autoMeasure(
 ): number | null {
   if (needsOneDimension(method)) {
     const dim = width ?? length
-    return dim == null ? null : dim * dim
+    return dim == null ? null : (dim / CM_PER_METER) ** 2
   }
   if (needsTwoDimensions(method)) {
-    return length != null && width != null ? 2 * (length + width) : null
+    return length != null && width != null ? (2 * (length + width)) / CM_PER_METER : null
   }
   return null
 }
@@ -334,10 +334,10 @@ function updateExtraCalculatedPrices(source: 'unit' | 'total' | 'dims') {
   let measure = 1
   if (method === 'one_dimension' || (method as string) === 'area') {
     const dim = width ?? length ?? 0
-    measure = dim * dim
+    measure = (dim / CM_PER_METER) ** 2
   } else if (method === 'two_dimensions' || (method as string) === 'perimeter') {
     if (length != null && width != null) {
-      measure = 2 * (length + width)
+      measure = (2 * (length + width)) / CM_PER_METER
     }
   } else if (method === 'quantity') {
     measure = quantity ?? 1
@@ -1181,7 +1181,7 @@ watch(
                 </div>
                 <div v-if="showExtraDimensionInputs" class="grid">
                   <div v-if="showExtraTwoDimensions">
-                    <UiLabel>الطول (x) — محسوب من المقاس</UiLabel>
+                    <UiLabel>الطول (x) بالسم — محسوب من المقاس</UiLabel>
                     <UiInput
                       v-model="extraForm.length"
                       type="number"
@@ -1191,7 +1191,7 @@ watch(
                     />
                   </div>
                   <div>
-                    <UiLabel>{{ showExtraTwoDimensions ? 'العرض (y)' : 'البعد / العرض (x)' }}</UiLabel>
+                    <UiLabel>{{ showExtraTwoDimensions ? 'العرض (y) بالسم' : 'البعد / العرض (x) بالسم' }}</UiLabel>
                     <UiInput
                       v-model="extraForm.width"
                       type="number"
@@ -1292,12 +1292,12 @@ watch(
           <!-- 0. المقاس كتعبير (مثل 5*9) -->
           <div class="grid">
             <div>
-              <UiLabel>المقاس (مثال: 5*9)</UiLabel>
+              <UiLabel>المقاس بالسم (مثال: 500*900)</UiLabel>
               <UiInput
                 v-model="dimExpr"
                 inputmode="decimal"
                 dir="ltr"
-                placeholder="5*9"
+                placeholder="500*900"
               />
             </div>
           </div>
@@ -1343,7 +1343,7 @@ watch(
           <!-- 2. نتيجة المقاس (قابلة للتعديل وتُستخدم في حساب السعر) -->
           <div class="grid">
             <div>
-              <UiLabel>الطول (x)</UiLabel>
+              <UiLabel>الطول (x) بالسم</UiLabel>
               <UiInput
                 v-model="pieceForm.length"
                 type="number"
@@ -1354,7 +1354,7 @@ watch(
               />
             </div>
             <div>
-              <UiLabel>العرض (y)</UiLabel>
+              <UiLabel>العرض (y) بالسم</UiLabel>
               <UiInput
                 v-model="pieceForm.width"
                 type="number"
@@ -1373,7 +1373,7 @@ watch(
               <UiInput v-model="pieceForm.quantity" type="number" min="1" step="1" />
             </div>
             <div v-if="selectedService && needsDimensions(selectedService.cost_method)">
-              <UiLabel>النتيجة (المقياس المستخدم في السعر)</UiLabel>
+              <UiLabel>النتيجة بالمتر (المقياس المستخدم في السعر)</UiLabel>
               <UiInput
                 v-model="itemForm.measure"
                 type="number"

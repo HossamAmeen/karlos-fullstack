@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 from apps.services.models import Service
 
 TWO = Decimal("0.01")
+CM_PER_METER = Decimal("100")
 
 
 def quantize_money(value: Decimal) -> Decimal:
@@ -24,6 +25,9 @@ def compute_line_subtotal(
 ) -> Decimal:
     """Pure pricing engine - server source of truth for line amounts before item
     discount.
+
+    ``length`` / ``width`` are in centimetres and converted to metres here;
+    ``measure`` is already in metres.
     """
     if unit_price < 0:
         raise ValidationError({"unit_price": "Unit price must be >= 0."})
@@ -59,6 +63,7 @@ def compute_line_subtotal(
             )
         if dim < 0:
             raise ValidationError({"width": "Dimension must be >= 0."})
+        dim = dim / CM_PER_METER
         measure = dim * dim
         return quantize_money(unit_price * measure)
 
@@ -81,7 +86,7 @@ def compute_line_subtotal(
                     "width": "Length and width must be >= 0.",
                 }
             )
-        measure = Decimal("2") * (length + width)
+        measure = Decimal("2") * (length + width) / CM_PER_METER
         return quantize_money(unit_price * measure)
 
     raise ValidationError({"cost_method": f"Unsupported cost method: {cost_method}"})

@@ -4,6 +4,8 @@ export interface ServiceCategory {
   id: number
   name: string
   icon: string | null
+  expense_category: number | null
+  expense_category_name: string | null
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -11,8 +13,25 @@ export interface ServiceCategory {
   updated_by: number | null
 }
 
+export interface ServiceCategoryDetail extends ServiceCategory {
+  invoices_count: number
+  invoices_total: string
+  last_invoices: {
+    id: number
+    number: string
+    client_name: string
+    issue_date: string
+    invoice_total: string
+    category_amount: string
+  }[]
+  expenses_count: number
+  expenses_total: string
+}
+
 export interface ServiceCategoryPayload {
   name: string
+  /** Linked expense category id, or null for none. */
+  expense_category?: number | null
   /** File to upload, null to clear, undefined to keep the current icon. */
   icon?: File | null
 }
@@ -20,6 +39,7 @@ export interface ServiceCategoryPayload {
 function toFormData(payload: ServiceCategoryPayload) {
   const data = new FormData()
   data.set('name', payload.name)
+  data.set('expense_category', payload.expense_category ? String(payload.expense_category) : '')
   if (payload.icon instanceof File) data.set('icon', payload.icon)
   else if (payload.icon === null) data.set('icon', '')
   return data
@@ -41,6 +61,10 @@ export function listServiceCategories(
   query.set('offset', String(params.offset ?? 0))
   const qs = query.toString()
   return apiFetch<PaginatedServiceCategories>(`/api/v1/service-categories/?${qs}`)
+}
+
+export function retrieveServiceCategory(id: number) {
+  return apiFetch<ServiceCategoryDetail>(`/api/v1/service-categories/${id}/`)
 }
 
 export function createServiceCategory(payload: ServiceCategoryPayload) {

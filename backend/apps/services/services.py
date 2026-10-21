@@ -14,12 +14,14 @@ class ServiceCategoryService:
         *,
         name: str,
         icon=None,
+        expense_category=None,
         created_by: AbstractBaseUser | None = None,
         updated_by: AbstractBaseUser | None = None,
     ) -> ServiceCategory:
         return ServiceCategory.objects.create(
             name=name.strip(),
             icon=icon,
+            expense_category=expense_category,
             created_by=created_by,
             updated_by=updated_by if updated_by is not None else created_by,
         )
@@ -30,10 +32,14 @@ class ServiceCategoryService:
         category: ServiceCategory,
         name: str,
         icon=UNSET,
+        expense_category=UNSET,
         updated_by: AbstractBaseUser | None = None,
     ) -> ServiceCategory:
         category.name = name.strip()
         fields = ["name", "updated_by", "updated_at"]
+        if expense_category is not UNSET:
+            category.expense_category = expense_category
+            fields.append("expense_category")
         if icon is not UNSET:
             category.icon = icon
             fields.append("icon")

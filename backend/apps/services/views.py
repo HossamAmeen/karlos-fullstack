@@ -5,7 +5,11 @@ from rest_framework.response import Response
 from apps.services.filters import ServiceCategoryFilter, ServiceFilter
 from apps.services.models import Service, ServiceCategory
 from apps.services.selectors import ServiceCategorySelector, ServiceSelector
-from apps.services.serializers import ServiceCategorySerializer, ServiceSerializer
+from apps.services.serializers import (
+    ServiceCategoryDetailSerializer,
+    ServiceCategorySerializer,
+    ServiceSerializer,
+)
 from apps.services.services import ServiceCategoryService, ServiceService
 
 
@@ -18,6 +22,11 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return ServiceCategorySelector.all()
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return ServiceCategoryDetailSerializer
+        return super().get_serializer_class()
 
     def destroy(self, request: Request, *args, **kwargs) -> Response:
         instance: ServiceCategory = self.get_object()

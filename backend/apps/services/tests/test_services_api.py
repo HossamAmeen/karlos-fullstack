@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from decimal import Decimal
+
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -177,3 +179,62 @@ class ServiceApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["name"], "Install A")
+
+
+class ServiceCategoryDetailApiTests(APITestCase):
+    def setUp(self) -> None:
+        from datetime import date
+        from decimal import Decimal
+
+        from apps.clients.models import Client
+        from apps.expenses.models import Expense, ExpenseCategory, ExpenseMainCategory
+        from apps.invoices.models import Invoice, InvoiceItem, InvoicePiece
+
+        self.user = User.objects.create_user(username="staff", password="staffpass123")
+        self.client.force_authenticate(user=self.user)
+        main = ExpenseMainCategory.objects.create(name="Ops")
+        self.expense_cat = ExpenseCategory.objects.create(main_category=main, name="Glass")
+        for amount in ("10.00", "5.50"):
+            Expense.objects.create(
+                amount=Decimal(amount),
+                description="x",
+                expense_date=date.today(),
+                category=self.expense_cat,
+            )
+        self.category = ServiceCategory.objects.create(
+            name="Cutting", expense_category=self.expense_cat
+        )
+        service = Service.objects.create(
+            name="Cut", service_category=self.category, cost=Decimal("1")
+        )
+        client = Client.objects.create(name="Ali", phone="01000000009")
+        for i, status_ in enumerate(("confirmed", "confirmed", "draft")):
+            invoice = Invoice.objects.create(
+                number=f"T-{i}", client=client, status=status_, total=Decimal("500")
+            )
+            piece = InvoicePiece.objects.create(invoice=invoice, quantity=Decimal("2"))
+            InvoiceItem.objects.create(
+                invoice=invoice,
+                piece=piece,
+                service=service,
+                service_name="Cut",
+                cost_method="fixed",
+                unit_price=Decimal("100"),
+                line_total=Decimal("100"),
+            )
+
+    def test_detail_stats(self) -> None:
+        url = reverse("service-category-detail", args=[self.category.id])
+        data = self.client.get(url).data
+        self.assertEqual(data["invoices_count"], 2)
+        self.assertEqual(Decimal(data["invoices_total"]), Decimal("400"))
+        self.assertEqual(len(data["last_invoices"]), 2)
+        self.assertEqual(data["expenses_count"], 2)
+        self.assertEqual(Decimal(data["expenses_total"]), Decimal("15.50"))
+        self.assertEqual(data["expense_category_name"], "Glass")
+
+    def test_set_expense_category(self) -> None:
+        url = reverse("service-category-detail", args=[self.category.id])
+        res = self.client.patch(url, {"expense_category": None}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK, res.data)
+        self.assertIsNone(res.data["expense_category"])

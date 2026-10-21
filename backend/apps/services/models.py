@@ -6,6 +6,13 @@ from utils.models import BaseModel
 class ServiceCategory(BaseModel):
     name = models.CharField(max_length=255)
     icon = models.ImageField(upload_to="service_categories/", null=True, blank=True)
+    expense_category = models.ForeignKey(
+        "expenses.ExpenseCategory",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="service_categories",
+    )
 
     class Meta:
         ordering = ["name", "id"]
