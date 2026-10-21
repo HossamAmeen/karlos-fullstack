@@ -27,7 +27,7 @@ Invoice `subtotal` = sum of all `piece_total`. Invoice `total` = `subtotal` minu
 1. A piece must have at least one service.
 2. Dimensions live on the piece, not on each service. Changing `length` / `width` recalculates every service on that piece.
 3. When selecting a service in the invoice editor, if piece dimensions (`length` and `width`) are blank, they auto-fill from the service's `default_length` and `default_width` if configured.
-4. `area` (one dimension) measure = `width × width ÷ 100` (10×10 cm → 1). `perimeter` (two dimensions) measure = `2 × (length + width) ÷ 100`. `length` / `width` are entered in cm; `measure` is already in metres.
+4. `area` (one dimension) measure = `length × width ÷ 100` (30×50 cm → 15; width squared when length is blank). `perimeter` (two dimensions) measure = `2 × (length + width) ÷ 100`. `length` / `width` are entered in cm; `measure` is already in metres.
 5. Dimension services (`area` / `perimeter`) accept an optional item-level `measure` (e.g. `30` for `2×(5+10)`). When set, line subtotal = `unit_price × measure`, `length`/`width` are ignored (and not required). The editor pre-fills it from the dimensions and lets the user override it; piece `quantity` (count) then multiplies the piece subtotal.
 6. `fixed` and `quantity` services may sit on a piece that also has dimensions; `quantity` on an **item** is still the service count (holes, units), not the piece count.
 7. Deleting the last service on a piece deletes the piece.

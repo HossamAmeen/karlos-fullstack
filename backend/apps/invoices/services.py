@@ -171,7 +171,7 @@ class InvoiceService:
                 raise ValidationError(
                     {"width": "Width is required for one dimension cost method."}
                 )
-            return None, w
+            return piece.length, w
         if cost_method in (Service.CostMethod.TWO_DIMENSIONS, "perimeter"):
             if measure is not None:
                 return None, None

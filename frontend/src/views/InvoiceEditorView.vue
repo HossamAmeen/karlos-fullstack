@@ -258,7 +258,7 @@ function autoMeasure(
 ): number | null {
   if (needsOneDimension(method)) {
     const dim = width ?? length
-    return dim == null ? null : (dim * dim) / CM_PER_METER
+    return dim == null ? null : ((length ?? dim) * dim) / CM_PER_METER
   }
   if (needsTwoDimensions(method)) {
     return length != null && width != null ? (2 * (length + width)) / CM_PER_METER : null
@@ -334,7 +334,7 @@ function updateExtraCalculatedPrices(source: 'unit' | 'total' | 'dims') {
   let measure = 1
   if (method === 'one_dimension' || (method as string) === 'area') {
     const dim = width ?? length ?? 0
-    measure = (dim * dim) / CM_PER_METER
+    measure = ((length ?? dim) * dim) / CM_PER_METER
   } else if (method === 'two_dimensions' || (method as string) === 'perimeter') {
     if (length != null && width != null) {
       measure = (2 * (length + width)) / CM_PER_METER
