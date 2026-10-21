@@ -25,8 +25,8 @@ export function computeLineSubtotal(opts: {
     return roundMoney(unitPrice * measure)
   }
   if (costMethod === 'one_dimension') {
-    const dim = (width ?? length ?? 0) / CM_PER_METER
-    return roundMoney(unitPrice * dim * dim)
+    const dim = width ?? length ?? 0
+    return roundMoney((unitPrice * dim * dim) / CM_PER_METER)
   }
   if (costMethod === 'two_dimensions') {
     if (length == null || width == null) return 0

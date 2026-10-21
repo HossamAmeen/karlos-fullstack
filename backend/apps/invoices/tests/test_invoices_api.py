@@ -98,7 +98,7 @@ class InvoiceApiTests(APITestCase):
             items_url,
             {
                 "service": self.one_dim_service.id,
-                "width": "300.00",
+                "width": "30.00",
                 "unit_price": "10.00",
             },
             format="json",
@@ -330,12 +330,12 @@ class InvoiceApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
         self.assertEqual(len(response.data["pieces"]), 1)
         piece = response.data["pieces"][0]
-        # one_dim: 10 * 2 * 2 = 40; two_dim: 5 * 2*(3+2) = 50
-        self.assertEqual(piece["piece_subtotal"], "90.00")
-        self.assertEqual(piece["piece_total"], "180.00")
+        # one_dim: 10 * (200*200/100 = 400 m) = 4000; two_dim: 5 * 2*(300+200)/100 = 50
+        self.assertEqual(piece["piece_subtotal"], "4050.00")
+        self.assertEqual(piece["piece_total"], "8100.00")
         self.assertEqual(len(piece["items"]), 2)
-        self.assertEqual(response.data["subtotal"], "180.00")
-        self.assertEqual(response.data["total"], "180.00")
+        self.assertEqual(response.data["subtotal"], "8100.00")
+        self.assertEqual(response.data["total"], "8100.00")
         self.assertEqual(len(response.data["items"]), 2)
 
     def test_add_piece_with_manual_measure_ignores_dimensions(self) -> None:
@@ -387,8 +387,8 @@ class InvoiceApiTests(APITestCase):
         self.assertEqual(added.status_code, status.HTTP_201_CREATED, added.data)
         self.assertEqual(len(added.data["pieces"]), 1)
         self.assertEqual(len(added.data["pieces"][0]["items"]), 2)
-        self.assertEqual(added.data["pieces"][0]["piece_subtotal"], "90.00")
-        self.assertEqual(added.data["total"], "90.00")
+        self.assertEqual(added.data["pieces"][0]["piece_subtotal"], "4050.00")
+        self.assertEqual(added.data["total"], "4050.00")
 
     def test_update_piece_dimensions_recalculates_services(self) -> None:
         self.authenticate()
@@ -416,8 +416,8 @@ class InvoiceApiTests(APITestCase):
         self.assertEqual(updated.status_code, status.HTTP_200_OK, updated.data)
         piece = updated.data["pieces"][0]
         # one_dim: 10 * 1 * 1 = 10; two_dim: 5 * 2*(4+1) = 50
-        self.assertEqual(piece["piece_subtotal"], "60.00")
-        self.assertEqual(updated.data["total"], "60.00")
+        self.assertEqual(piece["piece_subtotal"], "1050.00")
+        self.assertEqual(updated.data["total"], "1050.00")
 
     def test_delete_last_item_removes_piece(self) -> None:
         self.authenticate()

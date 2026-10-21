@@ -63,8 +63,7 @@ def compute_line_subtotal(
             )
         if dim < 0:
             raise ValidationError({"width": "Dimension must be >= 0."})
-        dim = dim / CM_PER_METER
-        measure = dim * dim
+        measure = dim * dim / CM_PER_METER
         return quantize_money(unit_price * measure)
 
     if cost_method in (Service.CostMethod.TWO_DIMENSIONS, "perimeter"):
