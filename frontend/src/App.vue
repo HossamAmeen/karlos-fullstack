@@ -71,7 +71,7 @@ async function onLogout() {
             :key="item.name"
             :to="item.to"
             class="nav-link"
-            exact-active-class="nav-link-active"
+            active-class="nav-link-active"
           >
             {{ item.label }}
           </RouterLink>

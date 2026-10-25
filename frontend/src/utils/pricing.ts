@@ -2,6 +2,8 @@ import type { CostMethod } from '@/api/invoices'
 
 /** Piece length / width are entered in centimetres; prices use metres. */
 export const CM_PER_METER = 100
+/** One-dimension (area) measure = length * width / AREA_DIVISOR (300 x 500 cm -> 1.5). */
+export const AREA_DIVISOR = 100000
 
 export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
@@ -27,7 +29,7 @@ export function computeLineSubtotal(opts: {
   if (costMethod === 'one_dimension') {
     const dim = width ?? length ?? 0
     const other = length ?? dim
-    return roundMoney((unitPrice * other * dim) / CM_PER_METER)
+    return roundMoney((unitPrice * other * dim) / AREA_DIVISOR)
   }
   if (costMethod === 'two_dimensions') {
     if (length == null || width == null) return 0

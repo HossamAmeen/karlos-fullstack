@@ -8,6 +8,7 @@ from apps.services.models import Service
 
 TWO = Decimal("0.01")
 CM_PER_METER = Decimal("100")
+AREA_DIVISOR = Decimal("100000")
 
 
 def quantize_money(value: Decimal) -> Decimal:
@@ -64,7 +65,7 @@ def compute_line_subtotal(
         if dim < 0:
             raise ValidationError({"width": "Dimension must be >= 0."})
         other = length if length is not None else dim
-        measure = other * dim / CM_PER_METER
+        measure = other * dim / AREA_DIVISOR
         return quantize_money(unit_price * measure)
 
     if cost_method in (Service.CostMethod.TWO_DIMENSIONS, "perimeter"):
