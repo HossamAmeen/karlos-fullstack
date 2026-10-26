@@ -36,6 +36,11 @@ const props = defineProps<{ id?: string }>()
 const auth = useAuthStore()
 const invoices = useInvoicesStore()
 const clients = useClientsStore()
+const clientName = computed(() => {
+  const id = invoice.value?.client ?? header.client
+  const found = clients.items.find((c) => String(c.id) === String(id))
+  return found?.name ?? invoice.value?.client_name ?? ''
+})
 const categories = useServiceCategoriesStore()
 const services = useServicesStore()
 const router = useRouter()
@@ -1084,7 +1089,9 @@ watch(
 
     <template v-if="invoice">
       <UiCard>
-        <h2 class="section-title">قطع الفاتورة</h2>
+        <h2 class="section-title">
+          قطع الفاتورة<span v-if="clientName"> — العميل: {{ clientName }}</span>
+        </h2>
 
         <div class="pieces">
           <article v-for="piece in invoicePieces" :key="piece.id" class="piece-card">
@@ -1288,7 +1295,7 @@ watch(
         </div>
 
         <div v-if="editable" class="item-form">
-          <h3>إضافة قطعة / خدمة</h3>
+          <h3>إضافة قطعة / خدمة<span v-if="clientName"> — العميل: {{ clientName }}</span></h3>
           <p class="hint">اختر الخدمة أولاً، ثم أدخل المقاسات أو الكمية والسعر.</p>
 
           <!-- 0. المقاس كتعبير (مثل 5*9) -->
