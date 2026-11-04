@@ -6,6 +6,29 @@
 
 Totals are server-authoritative. Only drafts are editable.
 
+## Listing & filters
+
+`GET /api/v1/invoices/` (paginated with `limit`/`offset`; the UI uses 25 per page). Query params: `search`, `status`, `client`, `issue_date` (exact), `issue_date_from` / `issue_date_to` (inclusive, `YYYY-MM-DD`).
+
+## Payment method & deposits
+
+- Every `Payment` has a `method`: `cash` (كاش, default), `instapay` (انستا), `wallet` (محفظة). Accepted by `POST /invoices/{id}/confirm/` (with `amount_paid`), `POST /invoices/{id}/pay/` and `POST /clients/{id}/deposits/`; returned on statement deposits.
+- `POST /clients/{id}/deposits/` also takes an optional `invoice` (id). It must belong to that client and be confirmed, and `amount` cannot exceed the invoice's `amount_remaining` (400 otherwise). Without `invoice` it is a general deposit.
+- UI: «إضافة وديعة» button on the invoices list opens a dialog (client picker → optional open invoice → amount → method → notes).
+
+## Cash box (الخزنة)
+
+- `GET /api/v1/payments/` — read-only list of all `Payment` rows (client receipts), newest first, paginated. Filters: `client`, `invoice`, `method`, `date`, `start_date`, `end_date` (on `paid_at`), `search` (client name/phone, invoice number, notes).
+- `GET /api/v1/payments/summary/` — same filters; returns `total_payments`, `count`, `by_method[]`.
+- UI «الخزنة» (sidebar): two buttons — المدفوعات (payments) and المصروفات (expenses, from `/expenses/`) — with a client filter and a from/to date filter that apply to both. Summary cards show total payments, total expenses and net (payments − expenses) for the current filters.
+
+## Printing & removal
+
+- `POST /api/v1/invoices/{id}/print/` stamps `printed_at` the **first** time an invoice is printed (later prints keep the original time). Cancelled invoices cannot be printed. `printed_at` is exposed read-only on the invoice.
+- Items / pieces can be removed (`DELETE .../items/{id}/`, `.../pieces/{id}/`) while the invoice is **draft or confirmed and not printed**. Once printed (or cancelled) removal is rejected.
+- Removing from a **confirmed** invoice recalculates totals; it is rejected if no item would remain or if `amount_paid` would exceed the new `total`.
+- UI: «طباعة» button in the invoice form header; the invoice discount is a «خصم الفاتورة» button (opens a dialog) next to «حفظ الرأس»; the client is chosen with a searchable picker (name or phone, server-side `?search=`); the client name is shown in a large sticky banner (and again above «إضافة قطعة / خدمة») with the client's debt (`balance_due` from the statement). The first line of the notes is auto-set to «على العميل مديونية: X» or «لا توجد مديونية» for editable invoices.
+
 ## Pieces (physical items)
 
 An invoice is a list of **pieces**. A piece is one physical item (for example glass `3 × 2`) that can carry **one or more services**, each with its own price.
@@ -27,7 +50,7 @@ Invoice `subtotal` = sum of all `piece_total`. Invoice `total` = `subtotal` minu
 1. A piece must have at least one service.
 2. Dimensions live on the piece, not on each service. Changing `length` / `width` recalculates every service on that piece.
 3. When selecting a service in the invoice editor, if piece dimensions (`length` and `width`) are blank, they auto-fill from the service's `default_length` and `default_width` if configured.
-4. `area` (one dimension) measure = `length × width ÷ 100000` (300×500 cm → 1.5; width squared when length is blank). `perimeter` (two dimensions) measure = `2 × (length + width) ÷ 100`. `length` / `width` are entered in cm; `measure` is already in metres.
+4. `area` (one dimension) measure = `length × width ÷ 10000` (i.e. each side ÷ 100: 200×100 cm → 2 m²; width squared when length is blank). `perimeter` (two dimensions) measure = `2 × (length + width) ÷ 100`. `length` / `width` are entered in cm; `measure` is already in metres.
 5. Dimension services (`area` / `perimeter`) accept an optional item-level `measure` (e.g. `30` for `2×(5+10)`). When set, line subtotal = `unit_price × measure`, `length`/`width` are ignored (and not required). The editor pre-fills it from the dimensions and lets the user override it; piece `quantity` (count) then multiplies the piece subtotal.
 6. `fixed` and `quantity` services may sit on a piece that also has dimensions; `quantity` on an **item** is still the service count (holes, units), not the piece count.
 7. Deleting the last service on a piece deletes the piece.

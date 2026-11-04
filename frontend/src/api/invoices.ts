@@ -1,3 +1,5 @@
+import type { PaymentMethod } from '@/utils/paymentMethods'
+
 import { apiFetch } from './client'
 
 export type InvoiceStatus = 'draft' | 'confirmed' | 'cancelled'
@@ -56,6 +58,7 @@ export interface Invoice {
   is_settled: boolean
   confirmed_at: string | null
   cancelled_at: string | null
+  printed_at: string | null
   pieces: InvoicePiece[]
   items: InvoiceItem[]
   created_at: string
@@ -111,6 +114,7 @@ export interface InvoicePaymentPayload {
   amount: string
   paid_at?: string
   notes?: string
+  method?: PaymentMethod
 }
 
 export interface PaginatedInvoices {
@@ -125,6 +129,8 @@ export function listInvoices(
     search?: string
     status?: InvoiceStatus
     client?: number
+    issue_date_from?: string
+    issue_date_to?: string
     limit?: number
     offset?: number
   } = {},
@@ -133,6 +139,8 @@ export function listInvoices(
   if (params.search) query.set('search', params.search)
   if (params.status) query.set('status', params.status)
   if (params.client != null) query.set('client', String(params.client))
+  if (params.issue_date_from) query.set('issue_date_from', params.issue_date_from)
+  if (params.issue_date_to) query.set('issue_date_to', params.issue_date_to)
   query.set('limit', String(params.limit ?? 100))
   query.set('offset', String(params.offset ?? 0))
   return apiFetch<PaginatedInvoices>(`/api/v1/invoices/?${query}`)
@@ -208,11 +216,13 @@ export function deleteInvoicePiece(invoiceId: number, pieceId: number) {
   })
 }
 
-export function confirmInvoice(invoiceId: number, amountPaid?: string) {
+export function confirmInvoice(invoiceId: number, amountPaid?: string, method?: PaymentMethod) {
   return apiFetch<Invoice>(`/api/v1/invoices/${invoiceId}/confirm/`, {
     method: 'POST',
     body: JSON.stringify(
-      amountPaid != null && amountPaid !== '' ? { amount_paid: amountPaid } : {},
+      amountPaid != null && amountPaid !== ''
+        ? { amount_paid: amountPaid, method: method ?? 'cash' }
+        : {},
     ),
   })
 }
@@ -222,6 +232,10 @@ export function payInvoice(invoiceId: number, payload: InvoicePaymentPayload) {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+export function printInvoice(invoiceId: number) {
+  return apiFetch<Invoice>(`/api/v1/invoices/${invoiceId}/print/`, { method: 'POST' })
 }
 
 export function cancelInvoice(invoiceId: number) {

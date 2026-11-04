@@ -61,6 +61,7 @@ class Invoice(BaseModel):
     is_settled = models.BooleanField(default=False, db_index=True)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
+    printed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-issue_date", "-id"]
@@ -107,6 +108,16 @@ class Payment(BaseModel):
         max_digits=12,
         decimal_places=2,
         validators=[MinValueValidator(0)],
+    )
+    class Method(models.TextChoices):
+        CASH = "cash", "Cash"
+        INSTAPAY = "instapay", "InstaPay"
+        WALLET = "wallet", "Wallet"
+
+    method = models.CharField(
+        max_length=20,
+        choices=Method.choices,
+        default=Method.CASH,
     )
     paid_at = models.DateField(default=timezone.localdate)
     notes = models.TextField(blank=True, default="")

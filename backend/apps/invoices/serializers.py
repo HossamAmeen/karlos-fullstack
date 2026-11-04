@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.clients.models import Client
-from apps.invoices.models import Invoice, InvoiceItem, InvoicePiece
+from apps.invoices.models import Invoice, InvoiceItem, InvoicePiece, Payment
 from apps.invoices.services import InvoiceService
 from apps.services.models import Service
 from utils.serializers import BaseModelSerializer
@@ -92,6 +92,7 @@ class InvoiceSerializer(BaseModelSerializer):
             "is_settled",
             "confirmed_at",
             "cancelled_at",
+            "printed_at",
             "pieces",
             "items",
             "created_at",
@@ -113,6 +114,7 @@ class InvoiceSerializer(BaseModelSerializer):
             "is_settled",
             "confirmed_at",
             "cancelled_at",
+            "printed_at",
             "pieces",
             "items",
             "created_at",
@@ -282,6 +284,7 @@ class InvoiceConfirmSerializer(serializers.Serializer):
         allow_null=True,
         min_value=Decimal("0"),
     )
+    method = serializers.ChoiceField(choices=Payment.Method.choices, default="cash")
 
 
 class InvoicePaymentSerializer(serializers.Serializer):
@@ -290,6 +293,7 @@ class InvoicePaymentSerializer(serializers.Serializer):
     )
     paid_at = serializers.DateField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
+    method = serializers.ChoiceField(choices=Payment.Method.choices, default="cash")
 
     def validate_amount(self, value: Decimal) -> Decimal:
         invoice = self.context.get("invoice")
@@ -298,3 +302,26 @@ class InvoicePaymentSerializer(serializers.Serializer):
                 f"Payment exceeds remaining balance ({invoice.amount_remaining})."
             )
         return value
+
+
+class PaymentListSerializer(serializers.ModelSerializer):
+    client_name = serializers.CharField(source="client.name", read_only=True)
+    invoice_number = serializers.CharField(
+        source="invoice.number", read_only=True, allow_null=True
+    )
+
+    class Meta:
+        model = Payment
+        fields = (
+            "id",
+            "client",
+            "client_name",
+            "invoice",
+            "invoice_number",
+            "amount",
+            "method",
+            "paid_at",
+            "notes",
+            "created_at",
+        )
+        read_only_fields = fields

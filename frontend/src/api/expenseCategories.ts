@@ -19,6 +19,7 @@ export interface ExpenseMainCategory extends Audit {
   id: number
   name: string
   categories_count: number
+  enable_at: string | null
 }
 
 export interface ExpenseCategory extends Audit {
@@ -29,6 +30,7 @@ export interface ExpenseCategory extends Audit {
   order_number: number
   is_shown: boolean
   expenses_count: number
+  enable_at: string | null
 }
 
 export interface ExpenseCategoryDetail extends ExpenseCategory {

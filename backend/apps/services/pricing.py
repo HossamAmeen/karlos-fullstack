@@ -8,7 +8,7 @@ from apps.services.models import Service
 
 TWO = Decimal("0.01")
 CM_PER_METER = Decimal("100")
-AREA_DIVISOR = Decimal("100000")
+AREA_DIVISOR = Decimal("10000")
 
 
 def quantize_money(value: Decimal) -> Decimal:

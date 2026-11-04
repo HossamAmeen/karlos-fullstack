@@ -1,3 +1,5 @@
+import type { PaymentMethod } from '@/utils/paymentMethods'
+
 import { apiFetch } from './client'
 
 export interface Client {
@@ -45,6 +47,7 @@ export interface ClientStatementInvoice {
 export interface ClientStatementDeposit {
   id: number
   amount: string
+  method: PaymentMethod
   paid_at: string
   notes: string
   invoice: number | null
@@ -66,6 +69,8 @@ export interface ClientDepositPayload {
   amount: string
   paid_at?: string
   notes?: string
+  method?: PaymentMethod
+  invoice?: number
 }
 
 export function listClients(params: { search?: string; limit?: number; offset?: number } = {}) {

@@ -69,3 +69,13 @@ Respects the same filters as the list. Response:
 ## Frontend
 
 Sidebar has a collapsible **المصروفات** group: الرئيسية (`/expense-main-categories`), الفرعية (`/expense-categories`), المصروفات (`/expenses`).
+
+
+## Disabling categories (instead of deleting)
+
+- `ExpenseMainCategory` and `ExpenseCategory` have `enable_at` (datetime, nullable). A category is **enabled since** that time; `NULL` means **disabled**. New and existing rows are enabled (existing rows were backfilled with `created_at`).
+- `DELETE /expense-main-categories/{id}/` and `DELETE /expense-categories/{id}/` no longer fail: they **disable** the row (`enable_at = NULL`). Disabling a main category also disables its sub-categories. Past expenses keep their category and stay visible.
+- List endpoints return **enabled rows only**; `enable_at` is returned read-only and shown in the UI tables («تاريخ التفعيل»).
+- New/edited expenses cannot use a disabled category, and a category cannot be created under a disabled main category (400).
+- A disabled category still reserves its name (the unique-name rule counts it).
+- UI: deleting asks via a confirmation popup (`ConfirmDialog`); failures show a popup with the reason instead of a browser alert.

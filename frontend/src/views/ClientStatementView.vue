@@ -10,6 +10,7 @@ import {
   type PaymentStatus,
 } from '@/api/clients'
 import { createExpense, listExpenses, type Expense } from '@/api/expenses'
+import { paymentMethodLabels, paymentMethodOptions, type PaymentMethod } from '@/utils/paymentMethods'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -151,6 +152,7 @@ watch(statement, () => {
 const depositForm = reactive({
   amount: '',
   notes: '',
+  method: 'cash' as PaymentMethod,
 })
 
 const paymentLabels: Record<PaymentStatus, string> = {
@@ -199,6 +201,7 @@ async function addDeposit() {
   try {
     statement.value = await createClientDeposit(Number(props.id), {
       amount: depositForm.amount,
+      method: depositForm.method,
       notes: depositForm.notes.trim(),
     })
     depositForm.amount = ''
@@ -347,6 +350,12 @@ watch(
             />
           </div>
           <div class="ui-field">
+            <UiLabel html-for="deposit-method">طريقة الدفع</UiLabel>
+            <UiSelect id="deposit-method" v-model="depositForm.method">
+              <option v-for="m in paymentMethodOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+            </UiSelect>
+          </div>
+          <div class="ui-field">
             <UiLabel html-for="deposit-notes">ملاحظات</UiLabel>
             <UiInput id="deposit-notes" v-model="depositForm.notes" />
           </div>
@@ -363,18 +372,20 @@ watch(
                 <th>#</th>
                 <th>التاريخ</th>
                 <th>المبلغ (وديعة)</th>
+                <th>طريقة الدفع</th>
                 <th>الفاتورة</th>
                 <th>ملاحظات</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="statement.deposits.length === 0">
-                <td colspan="5" class="ui-empty">لا توجد مقبوضات بعد.</td>
+                <td colspan="6" class="ui-empty">لا توجد مقبوضات بعد.</td>
               </tr>
               <tr v-for="(dep, i) in pagedDeposits" :key="dep.id">
                 <td>{{ (depositsPage - 1) * PAGE_SIZE + i + 1 }}</td>
                 <td>{{ dep.paid_at }}</td>
                 <td>{{ dep.amount }}</td>
+                <td>{{ paymentMethodLabels[dep.method] ?? dep.method }}</td>
                 <td>{{ dep.invoice_number || 'وديعة عامة' }}</td>
                 <td>{{ dep.notes || '—' }}</td>
               </tr>
@@ -533,7 +544,7 @@ watch(
 }
 @media (min-width: 768px) {
   .deposit-form {
-    grid-template-columns: 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 1fr auto;
     align-items: end;
   }
 }

@@ -14,6 +14,7 @@ import {
   getInvoice,
   listInvoices,
   payInvoice,
+  printInvoice,
   updateInvoice,
   updateInvoicePiece,
   type Invoice,
@@ -24,6 +25,7 @@ import {
   type InvoicePieceUpdatePayload,
   type InvoiceStatus,
 } from '@/api/invoices'
+import type { PaymentMethod } from '@/utils/paymentMethods'
 
 export const useInvoicesStore = defineStore('invoices', () => {
   const items = ref<Invoice[]>([])
@@ -32,6 +34,11 @@ export const useInvoicesStore = defineStore('invoices', () => {
   const error = ref<string | null>(null)
   const search = ref('')
   const statusFilter = ref<InvoiceStatus | ''>('')
+  const dateFrom = ref('')
+  const dateTo = ref('')
+  const pageSize = 25
+  const page = ref(1)
+  const totalCount = ref(0)
 
   async function fetchAll() {
     loading.value = true
@@ -40,8 +47,18 @@ export const useInvoicesStore = defineStore('invoices', () => {
       const data = await listInvoices({
         search: search.value || undefined,
         status: statusFilter.value || undefined,
+        issue_date_from: dateFrom.value || undefined,
+        issue_date_to: dateTo.value || undefined,
+        limit: pageSize,
+        offset: (page.value - 1) * pageSize,
       })
       items.value = data.results
+      totalCount.value = data.count
+      const lastPage = Math.max(1, Math.ceil(data.count / pageSize))
+      if (page.value > lastPage) {
+        page.value = lastPage
+        return fetchAll()
+      }
     } catch (err) {
       error.value = err instanceof ApiError ? err.message : 'فشل تحميل الفواتير'
       throw err
@@ -112,8 +129,8 @@ export const useInvoicesStore = defineStore('invoices', () => {
     return invoice
   }
 
-  async function confirm(invoiceId: number, amountPaid?: string) {
-    const invoice = await confirmInvoice(invoiceId, amountPaid)
+  async function confirm(invoiceId: number, amountPaid?: string, method?: PaymentMethod) {
+    const invoice = await confirmInvoice(invoiceId, amountPaid, method)
     current.value = invoice
     items.value = items.value.map((i) => (i.id === invoiceId ? invoice : i))
     return invoice
@@ -121,6 +138,13 @@ export const useInvoicesStore = defineStore('invoices', () => {
 
   async function pay(invoiceId: number, payload: InvoicePaymentPayload) {
     const invoice = await payInvoice(invoiceId, payload)
+    current.value = invoice
+    items.value = items.value.map((i) => (i.id === invoiceId ? invoice : i))
+    return invoice
+  }
+
+  async function markPrinted(invoiceId: number) {
+    const invoice = await printInvoice(invoiceId)
     current.value = invoice
     items.value = items.value.map((i) => (i.id === invoiceId ? invoice : i))
     return invoice
@@ -136,6 +160,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
   async function remove(id: number) {
     await deleteInvoice(id)
     items.value = items.value.filter((i) => i.id !== id)
+    totalCount.value = Math.max(0, totalCount.value - 1)
     if (current.value?.id === id) current.value = null
   }
 
@@ -146,6 +171,11 @@ export const useInvoicesStore = defineStore('invoices', () => {
     error,
     search,
     statusFilter,
+    dateFrom,
+    dateTo,
+    page,
+    pageSize,
+    totalCount,
     fetchAll,
     fetchOne,
     create,
@@ -157,6 +187,7 @@ export const useInvoicesStore = defineStore('invoices', () => {
     removePiece,
     confirm,
     pay,
+    markPrinted,
     cancel,
     remove,
   }

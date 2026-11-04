@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
@@ -73,6 +73,24 @@ async function load() {
   }
 }
 
+async function onSearch() {
+  await load()
+}
+
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => clients.search,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => void load(), 300)
+  },
+)
+
+async function onClearSearch() {
+  clients.search = ''
+  await load()
+}
+
 async function onSubmit() {
   formError.value = null
   if (!form.name.trim() || !form.phone.trim()) {
@@ -132,6 +150,15 @@ onMounted(() => {
     <p v-if="clients.error" class="ui-error">{{ clients.error }}</p>
 
     <UiCard>
+      <div class="search-bar">
+        <UiInput
+          v-model="clients.search"
+          placeholder="بحث بالاسم أو رقم الهاتف..."
+          @keyup.enter="onSearch"
+        />
+        <UiButton variant="outline" @click="onSearch">بحث</UiButton>
+        <UiButton v-if="clients.search" variant="outline" @click="onClearSearch">مسح</UiButton>
+      </div>
       <div class="ui-table-wrap">
         <table class="ui-table">
           <thead>
@@ -211,3 +238,13 @@ onMounted(() => {
     </UiDialog>
   </section>
 </template>
+
+<style scoped>
+.search-bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+</style>

@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
+import { getClientStatement } from '@/api/clients'
 import type { CostMethod, InvoicePieceItemPayload } from '@/api/invoices'
 import type { Service } from '@/api/services'
+import ClientPicker from '@/components/ClientPicker.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -13,10 +16,10 @@ import UiLabel from '@/components/ui/UiLabel.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import UiTextarea from '@/components/ui/UiTextarea.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useClientsStore } from '@/stores/clients'
 import { useInvoicesStore } from '@/stores/invoices'
 import { useServiceCategoriesStore } from '@/stores/serviceCategories'
 import { useServicesStore } from '@/stores/services'
+import { paymentMethodOptions, type PaymentMethod } from '@/utils/paymentMethods'
 import { applyDiscount, AREA_DIVISOR, CM_PER_METER, computeLineSubtotal, roundMoney } from '@/utils/pricing'
 
 interface DraftService {
@@ -35,12 +38,54 @@ const props = defineProps<{ id?: string }>()
 
 const auth = useAuthStore()
 const invoices = useInvoicesStore()
-const clients = useClientsStore()
+const selectedClient = ref<{ id: number; name: string; phone?: string } | null>(null)
 const clientName = computed(() => {
-  const id = invoice.value?.client ?? header.client
-  const found = clients.items.find((c) => String(c.id) === String(id))
-  return found?.name ?? invoice.value?.client_name ?? ''
+  const picked = selectedClient.value
+  if (picked && String(picked.id) === String(header.client)) return picked.name
+  if (invoice.value && String(invoice.value.client) === String(header.client)) {
+    return invoice.value.client_name
+  }
+  return ''
 })
+const clientLabel = computed(() => {
+  const picked = selectedClient.value
+  if (picked?.phone && picked.name === clientName.value) {
+    return `${picked.name} — ${picked.phone}`
+  }
+  return clientName.value
+})
+
+// Client debt (statement balance_due); shown in the client box and written into notes.
+const clientDebt = ref<number | null>(null)
+const DEBT_LINE_RE = /^(على العميل مديونية: [^\n]*|لا توجد مديونية)(\n|$)/
+const debtText = computed(() => {
+  if (clientDebt.value == null) return ''
+  return clientDebt.value > 0
+    ? `على العميل مديونية: ${roundMoney(clientDebt.value)}`
+    : 'لا توجد مديونية'
+})
+function applyDebtToNotes() {
+  if (!debtText.value || !editable.value) return
+  const rest = header.notes.replace(DEBT_LINE_RE, '')
+  header.notes = rest ? `${debtText.value}\n${rest}` : debtText.value
+}
+let debtRequest = 0
+async function loadClientDebt(clientId: number | string) {
+  const current = ++debtRequest
+  clientDebt.value = null
+  if (clientId === '' || clientId == null) return
+  try {
+    const statement = await getClientStatement(Number(clientId))
+    if (current !== debtRequest) return
+    clientDebt.value = Number(statement.balance_due)
+    applyDebtToNotes()
+  } catch {
+    if (current === debtRequest) clientDebt.value = null
+  }
+}
+function onClientPicked(client: { id: number; name: string; phone?: string }) {
+  selectedClient.value = { id: client.id, name: client.name, phone: client.phone }
+}
 const categories = useServiceCategoriesStore()
 const services = useServicesStore()
 const router = useRouter()
@@ -54,6 +99,7 @@ const savingItem = ref(false)
 const acting = ref(false)
 const confirmMode = ref<'completed' | 'without_paid' | 'partial'>('completed')
 const payAmount = ref('')
+const payMethod = ref<PaymentMethod>('cash')
 const payNotes = ref('')
 const payError = ref<string | null>(null)
 const extraPieceId = ref<number | null>(null)
@@ -65,6 +111,11 @@ const header = reactive({
   notes: '',
   issue_date: new Date().toISOString().slice(0, 10),
 })
+
+watch(
+  () => header.client,
+  (id) => void loadClientDebt(id),
+)
 
 const pieceForm = reactive({
   length: '',
@@ -123,6 +174,10 @@ const draftServices = ref<DraftService[]>([])
 const invoice = computed(() => invoices.current)
 const isNew = computed(() => !props.id && !invoice.value?.id)
 const editable = computed(() => isNew.value || !invoice.value || invoice.value.status === 'draft')
+/** Items/pieces can be removed until the invoice is printed (or if cancelled). */
+const removable = computed(
+  () => !!invoice.value && invoice.value.status !== 'cancelled' && !invoice.value.printed_at,
+)
 const invoicePieces = computed(() => invoice.value?.pieces ?? [])
 const invoiceItems = computed(() => invoice.value?.items ?? [])
 const legacyInvoiceItems = computed(() =>
@@ -234,6 +289,26 @@ function apiErrorMessage(err: unknown, fallback: string) {
     if (typeof first === 'string') return first
   }
   return fallback
+}
+
+const removalErrorOpen = ref(false)
+const removalErrorMessage = ref('')
+const removalMessages: Record<string, string> = {
+  amount: 'لا يمكن الحذف: المبلغ المدفوع سيصبح أكبر من إجمالي الفاتورة بعد الحذف. عدّل المدفوعات أولاً.',
+  printed_at: 'لا يمكن الحذف: تمت طباعة الفاتورة.',
+  items: 'لا يمكن الحذف: الفاتورة المؤكدة تحتاج خدمة واحدة على الأقل.',
+  status: 'لا يمكن الحذف: الفاتورة ملغاة.',
+}
+
+function notifyRemovalFailed(err: unknown, fallback: string) {
+  let message = fallback
+  if (err instanceof ApiError && err.body && typeof err.body === 'object') {
+    const key = Object.keys(err.body as Record<string, unknown>)[0]
+    message = removalMessages[key] ?? apiErrorMessage(err, fallback)
+  }
+  itemError.value = message
+  removalErrorMessage.value = message
+  removalErrorOpen.value = true
 }
 
 function needsQuantity(method?: CostMethod) {
@@ -782,34 +857,69 @@ function openExtraForm(pieceId: number) {
 }
 
 async function removeItem(itemId: number) {
-  if (!invoice.value || !editable.value || acting.value) return
+  if (!invoice.value || !removable.value || acting.value) return
+  if (invoice.value.status === 'confirmed' && !window.confirm('الفاتورة مؤكدة، سيتغير إجماليها بعد الحذف. متابعة؟')) return
   acting.value = true
   try {
     await invoices.removeItem(invoice.value.id, itemId)
   } catch (err) {
     await handleAuthError(err)
-    itemError.value = apiErrorMessage(err, 'تعذر حذف الخدمة.')
+    notifyRemovalFailed(err, 'تعذر حذف الخدمة.')
   } finally {
     acting.value = false
   }
 }
 
 async function removePiece(pieceId: number) {
-  if (!invoice.value || !editable.value || acting.value) return
+  if (!invoice.value || !removable.value || acting.value) return
+  if (invoice.value.status === 'confirmed' && !window.confirm('الفاتورة مؤكدة، سيتغير إجماليها بعد الحذف. متابعة؟')) return
   acting.value = true
   try {
     await invoices.removePiece(invoice.value.id, pieceId)
   } catch (err) {
     await handleAuthError(err)
-    itemError.value = apiErrorMessage(err, 'تعذر حذف القطعة.')
+    notifyRemovalFailed(err, 'تعذر حذف القطعة.')
   } finally {
     acting.value = false
   }
 }
 
+const printing = ref(false)
+async function printCurrent() {
+  if (!invoice.value || printing.value) return
+  printing.value = true
+  itemError.value = null
+  try {
+    await invoices.markPrinted(invoice.value.id)
+    await nextTick()
+    window.print()
+  } catch (err) {
+    await handleAuthError(err)
+    itemError.value = apiErrorMessage(err, 'تعذر طباعة الفاتورة.')
+  } finally {
+    printing.value = false
+  }
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return ''
+  return new Date(value).toLocaleString('ar-EG')
+}
+
+const discountDialogOpen = ref(false)
+const discountDraft = ref('0')
+function openDiscountDialog() {
+  discountDraft.value = header.discount_amount || '0'
+  discountDialogOpen.value = true
+}
+async function applyDiscountDialog() {
+  header.discount_amount = discountDraft.value || '0'
+  discountDialogOpen.value = false
+  if (invoice.value) await saveAndContinue()
+}
+
 async function loadLookups() {
-  await Promise.all([clients.fetchAll(), categories.fetchAll(), services.fetchAll()])
-  if (!header.client && clients.items[0]) header.client = clients.items[0].id
+  await Promise.all([categories.fetchAll(), services.fetchAll()])
   if (!extraForm.category && availableCategories.value[0]) {
     extraForm.category = availableCategories.value[0].id
   }
@@ -817,6 +927,7 @@ async function loadLookups() {
 
 async function loadInvoice(id: number) {
   const data = await invoices.fetchOne(id)
+  selectedClient.value = { id: data.client, name: data.client_name }
   header.client = data.client
   header.discount_amount = data.discount_amount
   header.notes = data.notes
@@ -885,7 +996,7 @@ async function confirm() {
   showConfirmSuccess.value = false
   showConfirmDialog.value = false
   try {
-    await invoices.confirm(invoice.value.id, amount)
+    await invoices.confirm(invoice.value.id, amount, payMethod.value)
     payAmount.value = ''
     showConfirmSuccess.value = true
     showConfirmDialog.value = true
@@ -914,6 +1025,7 @@ async function recordPayment() {
   try {
     await invoices.pay(invoice.value.id, {
       amount,
+      method: payMethod.value,
       notes: String(payNotes.value ?? '').trim(),
     })
     payAmount.value = ''
@@ -1047,32 +1159,45 @@ watch(
             {{ statusLabels[invoice.status] }}
           </span>
         </p>
-        <p v-else class="muted">أدخل العميل ثم احفظ للمتابعة وإضافة القطع</p>
+        <p v-if="invoice?.printed_at" class="muted">
+          تاريخ الطباعة: {{ formatDateTime(invoice.printed_at) }}
+        </p>
+        <p v-else-if="!invoice" class="muted">أدخل العميل ثم احفظ للمتابعة وإضافة القطع</p>
       </div>
-      <UiButton variant="outline" @click="router.push({ name: 'invoices' })">
-        رجوع
-      </UiButton>
+      <div class="header-actions">
+        <UiButton
+          :disabled="!invoice || invoice.status === 'cancelled' || printing"
+          :title="invoice ? '' : 'احفظ الفاتورة أولاً'"
+          @click="printCurrent"
+        >
+          {{ printing ? 'جاري الطباعة...' : 'طباعة' }}
+        </UiButton>
+        <UiButton variant="outline" @click="router.push({ name: 'invoices' })">
+          رجوع
+        </UiButton>
+      </div>
     </header>
+
+    <div v-if="clientName" class="client-banner">
+      العميل: <strong>{{ clientName }}</strong>
+      <span v-if="debtText" class="debt" :class="{ owes: (clientDebt ?? 0) > 0 }">{{ debtText }}</span>
+    </div>
 
     <UiCard>
       <h2 class="section-title">رأس الفاتورة</h2>
       <div class="grid">
         <div>
           <UiLabel>العميل</UiLabel>
-          <UiSelect v-model="header.client" :disabled="!editable">
-            <option disabled value="">اختر عميلًا</option>
-            <option v-for="c in clients.items" :key="c.id" :value="c.id">
-              {{ c.name }} — {{ c.phone }}
-            </option>
-          </UiSelect>
+          <ClientPicker
+            v-model="header.client"
+            :label="clientLabel"
+            :disabled="!editable"
+            @select="onClientPicked"
+          />
         </div>
         <div>
           <UiLabel>التاريخ</UiLabel>
           <UiInput v-model="header.issue_date" type="date" :disabled="!editable" />
-        </div>
-        <div>
-          <UiLabel>خصم الفاتورة</UiLabel>
-          <UiInput v-model="header.discount_amount" type="number" min="0" step="0.01" :disabled="!editable" />
         </div>
         <div class="full">
           <UiLabel>ملاحظات</UiLabel>
@@ -1084,14 +1209,15 @@ watch(
         <UiButton :disabled="savingHeader" @click="saveAndContinue">
           {{ savingHeader ? 'جاري الحفظ...' : isNew ? 'حفظ ومتابعة' : 'حفظ الرأس' }}
         </UiButton>
+        <UiButton variant="outline" :disabled="savingHeader" @click="openDiscountDialog">
+          خصم الفاتورة<template v-if="Number(header.discount_amount) > 0">: {{ header.discount_amount }}</template>
+        </UiButton>
       </div>
     </UiCard>
 
     <template v-if="invoice">
       <UiCard>
-        <h2 class="section-title">
-          قطع الفاتورة<span v-if="clientName"> — العميل: {{ clientName }}</span>
-        </h2>
+        <h2 class="section-title">قطع الفاتورة</h2>
 
         <div class="pieces">
           <article v-for="piece in invoicePieces" :key="piece.id" class="piece-card">
@@ -1126,7 +1252,7 @@ watch(
                 <div class="item-total">
                   <span>{{ item.line_total }}</span>
                   <UiButton
-                    v-if="editable"
+                    v-if="removable"
                     variant="destructive"
                     size="sm"
                     :disabled="acting"
@@ -1138,8 +1264,9 @@ watch(
               </div>
             </div>
 
-            <div v-if="editable" class="piece-actions">
+            <div v-if="editable || removable" class="piece-actions">
               <UiButton
+                v-if="editable"
                 variant="outline"
                 size="sm"
                 :disabled="acting"
@@ -1148,6 +1275,7 @@ watch(
                 إضافة خدمة لهذه القطعة
               </UiButton>
               <UiButton
+                v-if="removable"
                 variant="destructive"
                 size="sm"
                 :disabled="acting"
@@ -1277,7 +1405,7 @@ watch(
               <div class="item-total">
                 <span>{{ item.line_total }}</span>
                 <UiButton
-                  v-if="editable"
+                  v-if="removable"
                   variant="destructive"
                   size="sm"
                   :disabled="acting"
@@ -1295,7 +1423,11 @@ watch(
         </div>
 
         <div v-if="editable" class="item-form">
-          <h3>إضافة قطعة / خدمة<span v-if="clientName"> — العميل: {{ clientName }}</span></h3>
+          <div v-if="clientName" class="client-banner inline">
+            العميل: <strong>{{ clientName }}</strong>
+            <span v-if="debtText" class="debt" :class="{ owes: (clientDebt ?? 0) > 0 }">{{ debtText }}</span>
+          </div>
+          <h3>إضافة قطعة / خدمة</h3>
           <p class="hint">اختر الخدمة أولاً، ثم أدخل المقاسات أو الكمية والسعر.</p>
 
           <!-- 0. المقاس كتعبير (مثل 5*9) -->
@@ -1504,6 +1636,10 @@ watch(
             <option value="partial">جزئي</option>
           </UiSelect>
 
+          <UiLabel html-for="pay-method">طريقة الدفع</UiLabel>
+          <UiSelect id="pay-method" v-model="payMethod">
+            <option v-for="m in paymentMethodOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+          </UiSelect>
           <UiLabel html-for="confirm-pay">المبلغ المدفوع عند التأكيد</UiLabel>
           <UiInput
             id="confirm-pay"
@@ -1540,6 +1676,10 @@ watch(
           v-else-if="invoice.status === 'confirmed' && Number(invoice.amount_remaining) > 0"
           class="pay-box"
         >
+          <UiLabel html-for="extra-method">طريقة الدفع</UiLabel>
+          <UiSelect id="extra-method" v-model="payMethod">
+            <option v-for="m in paymentMethodOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+          </UiSelect>
           <UiLabel html-for="extra-pay">تسجيل دفعة / وديعة</UiLabel>
           <UiInput
             id="extra-pay"
@@ -1581,10 +1721,137 @@ watch(
         </div>
       </UiCard>
     </template>
+
+    <ConfirmDialog
+      v-model:open="removalErrorOpen"
+      kind="error"
+      title="لم يتم الحذف"
+      :message="removalErrorMessage"
+    />
+
+    <UiDialog
+      v-model:open="discountDialogOpen"
+      title="خصم الفاتورة"
+      description="أدخل قيمة الخصم على إجمالي الفاتورة."
+    >
+      <form @submit.prevent="applyDiscountDialog">
+        <div class="ui-field">
+          <UiLabel html-for="invoice-discount">قيمة الخصم</UiLabel>
+          <UiInput id="invoice-discount" v-model="discountDraft" type="number" min="0" step="0.01" />
+        </div>
+        <div class="ui-dialog-footer">
+          <UiButton type="submit">تطبيق</UiButton>
+          <UiButton type="button" variant="outline" @click="discountDialogOpen = false">إلغاء</UiButton>
+        </div>
+      </form>
+    </UiDialog>
+
+    <section v-if="invoice" class="print-area" dir="rtl">
+      <h1>فاتورة {{ invoice.number }}</h1>
+      <p>العميل: {{ clientName }}</p>
+      <p>التاريخ: {{ invoice.issue_date }}</p>
+      <p v-if="invoice.printed_at">تاريخ الطباعة: {{ formatDateTime(invoice.printed_at) }}</p>
+      <table>
+        <thead>
+          <tr><th>القطعة</th><th>الخدمة</th><th>السعر</th><th>الإجمالي</th></tr>
+        </thead>
+        <tbody>
+          <template v-for="piece in invoicePieces" :key="piece.id">
+            <tr v-for="(item, idx) in piece.items" :key="item.id">
+              <td>
+                <template v-if="idx === 0">
+                  {{ pieceSizeLabel(piece.length, piece.width) }} × {{ piece.quantity }}
+                </template>
+              </td>
+              <td>{{ item.service_name }}</td>
+              <td>{{ item.unit_price }}</td>
+              <td>{{ item.line_total }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <p>المجموع: {{ invoice.subtotal }}</p>
+      <p>الخصم: {{ invoice.discount_amount }}</p>
+      <p><strong>الإجمالي: {{ invoice.total }}</strong></p>
+      <p v-if="invoice.status !== 'draft'">
+        المدفوع: {{ invoice.amount_paid }} — المتبقي: {{ invoice.amount_remaining }}
+      </p>
+    </section>
   </div>
 </template>
 
+<style>
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    display: block !important;
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    padding: 1rem;
+    background: white;
+    color: black;
+  }
+  .print-area table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+  .print-area th,
+  .print-area td {
+    border: 1px solid #999;
+    padding: 0.4rem;
+    text-align: right;
+  }
+}
+</style>
+
 <style scoped>
+.print-area {
+  display: none;
+}
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.client-banner {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 0.9rem 1.25rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.08);
+}
+.client-banner strong {
+  font-weight: 800;
+}
+.client-banner .debt {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: hsl(142 50% 28%);
+}
+.client-banner .debt.owes {
+  color: hsl(0 60% 40%);
+}
+.client-banner.inline {
+  position: static;
+  margin-bottom: 1rem;
+  box-shadow: none;
+}
 .page {
   display: grid;
   gap: 1rem;

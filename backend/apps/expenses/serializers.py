@@ -29,11 +29,11 @@ class ExpenseMainCategorySerializer(BaseModelSerializer):
 
     class Meta:
         model = ExpenseMainCategory
-        fields = ("id", "name", "categories_count", *AUDIT_FIELDS)
-        read_only_fields = ("id", "categories_count", *AUDIT_FIELDS)
+        fields = ("id", "name", "categories_count", "enable_at", *AUDIT_FIELDS)
+        read_only_fields = ("id", "categories_count", "enable_at", *AUDIT_FIELDS)
 
     def get_categories_count(self, obj: ExpenseMainCategory) -> int:
-        return obj.categories.count()
+        return obj.categories.filter(enable_at__isnull=False).count()
 
     def validate_name(self, value: str) -> str:
         value = value.strip()
@@ -81,12 +81,14 @@ class ExpenseCategorySerializer(BaseModelSerializer):
             "order_number",
             "is_shown",
             "expenses_count",
+            "enable_at",
             *AUDIT_FIELDS,
         )
         read_only_fields = (
             "id",
             "main_category_name",
             "expenses_count",
+            "enable_at",
             *AUDIT_FIELDS,
         )
 
@@ -105,6 +107,13 @@ class ExpenseCategorySerializer(BaseModelSerializer):
             "main_category", getattr(self.instance, "main_category", None)
         )
         name = attrs.get("name", getattr(self.instance, "name", None))
+        main_changed = (
+            self.instance is None or self.instance.main_category_id != main_category.pk
+        )
+        if main_category is not None and main_category.enable_at is None and main_changed:
+            raise serializers.ValidationError(
+                {"main_category": "This main category is disabled."}
+            )
         qs = ExpenseCategory.objects.filter(main_category=main_category, name=name)
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)
@@ -205,6 +214,12 @@ class ExpenseSerializer(BaseModelSerializer):
     def validate_amount(self, value: Decimal) -> Decimal:
         if value <= 0:
             raise serializers.ValidationError("Amount must be greater than zero.")
+        return value
+
+    def validate_category(self, value: ExpenseCategory) -> ExpenseCategory:
+        unchanged = self.instance is not None and self.instance.category_id == value.pk
+        if value.enable_at is None and not unchanged:
+            raise serializers.ValidationError("This category is disabled.")
         return value
 
     def create(self, validated_data):

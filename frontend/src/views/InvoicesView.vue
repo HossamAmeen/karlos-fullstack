@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { ApiError } from '@/api/client'
 import type { Invoice, InvoiceStatus, PaymentStatus } from '@/api/invoices'
+import DepositDialog from '@/components/DepositDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiInput from '@/components/ui/UiInput.vue'
@@ -43,8 +44,27 @@ async function load() {
 }
 
 async function onSearch() {
+  invoices.page = 1
   await load()
 }
+
+function clearDates() {
+  invoices.dateFrom = ''
+  invoices.dateTo = ''
+  void onSearch()
+}
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(invoices.totalCount / invoices.pageSize)),
+)
+
+async function goToPage(p: number) {
+  if (p < 1 || p > totalPages.value || p === invoices.page) return
+  invoices.page = p
+  await load()
+}
+
+const depositOpen = ref(false)
 
 function openCreate() {
   void router.push({ name: 'invoice-new' })
@@ -64,8 +84,13 @@ onMounted(load)
         <h1>الفواتير</h1>
         <p class="muted">إنشاء ومتابعة فواتير العملاء</p>
       </div>
-      <UiButton @click="openCreate">فاتورة جديدة</UiButton>
+      <div class="header-actions">
+        <UiButton variant="outline" @click="depositOpen = true">إضافة وديعة</UiButton>
+        <UiButton @click="openCreate">فاتورة جديدة</UiButton>
+      </div>
     </header>
+
+    <DepositDialog v-model:open="depositOpen" @saved="load" />
 
     <UiCard>
       <div class="toolbar">
@@ -81,6 +106,23 @@ onMounted(load)
           <option value="cancelled">ملغاة</option>
         </UiSelect>
         <UiButton variant="outline" @click="onSearch">بحث</UiButton>
+      </div>
+      <div class="date-filters">
+        <label>
+          <span class="muted">من تاريخ</span>
+          <UiInput type="date" v-model="invoices.dateFrom" @change="onSearch" />
+        </label>
+        <label>
+          <span class="muted">إلى تاريخ</span>
+          <UiInput type="date" v-model="invoices.dateTo" @change="onSearch" />
+        </label>
+        <UiButton
+          v-if="invoices.dateFrom || invoices.dateTo"
+          variant="outline"
+          @click="clearDates"
+        >
+          مسح التاريخ
+        </UiButton>
       </div>
 
       <p v-if="invoices.loading" class="muted">جاري التحميل...</p>
@@ -108,7 +150,7 @@ onMounted(load)
               class="row-link"
               @click="openInvoice(invoice)"
             >
-              <td>{{ i + 1 }}</td>
+              <td>{{ (invoices.page - 1) * invoices.pageSize + i + 1 }}</td>
               <td>{{ invoice.number }}</td>
               <td>{{ invoice.client_name }}</td>
               <td>{{ invoice.issue_date }}</td>
@@ -133,6 +175,16 @@ onMounted(load)
         </table>
         <p v-if="!invoices.items.length" class="muted empty">لا توجد فواتير بعد.</p>
       </div>
+
+      <div v-if="totalPages > 1" class="pagination">
+        <UiButton variant="outline" size="sm" :disabled="invoices.page <= 1" @click="goToPage(invoices.page - 1)">
+          السابق
+        </UiButton>
+        <span>صفحة {{ invoices.page }} من {{ totalPages }} ({{ invoices.totalCount }})</span>
+        <UiButton variant="outline" size="sm" :disabled="invoices.page >= totalPages" @click="goToPage(invoices.page + 1)">
+          التالي
+        </UiButton>
+      </div>
     </UiCard>
   </div>
 </template>
@@ -147,6 +199,11 @@ onMounted(load)
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
+  flex-wrap: wrap;
+}
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 .page-header h1 {
@@ -171,6 +228,17 @@ onMounted(load)
     grid-template-columns: 1fr 10rem auto;
     align-items: center;
   }
+}
+.date-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.date-filters label {
+  display: grid;
+  gap: 0.25rem;
 }
 .table-wrap {
   overflow-x: auto;
@@ -209,6 +277,13 @@ td {
 }
 .empty {
   padding: 1rem 0;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0 0.5rem;
 }
 .payment-cell {
   display: flex;

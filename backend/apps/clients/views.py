@@ -19,7 +19,7 @@ from apps.clients.services import ClientService
 class ClientViewSet(viewsets.ModelViewSet):
     serializer_class = ClientSerializer
     filterset_class = ClientFilter
-    search_fields = ("name", "phone", "email")
+    search_fields = ("name", "phone")
     ordering_fields = ("id", "name", "created_at", "updated_at")
     ordering = ("name", "id")
 
@@ -52,6 +52,8 @@ class ClientViewSet(viewsets.ModelViewSet):
                 amount=data["amount"],
                 paid_at=data.get("paid_at"),
                 notes=data.get("notes", ""),
+                method=data.get("method", "cash"),
+                invoice=data.get("invoice"),
                 created_by=user,
                 updated_by=user,
             )

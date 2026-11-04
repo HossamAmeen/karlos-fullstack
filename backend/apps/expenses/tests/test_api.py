@@ -42,11 +42,24 @@ class TestExpenseHierarchyAPI:
         resp = api_client.delete(reverse("expense-main-category-detail", args=[pk]))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
 
-    def test_cannot_delete_main_category_with_categories(self, api_client, category):
+    def test_delete_main_category_disables_it_and_its_categories(
+        self, api_client, category
+    ):
+        main_id = category.main_category_id
         resp = api_client.delete(
-            reverse("expense-main-category-detail", args=[category.main_category_id])
+            reverse("expense-main-category-detail", args=[main_id])
         )
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        # hidden from lists, but the row (and its history) is kept
+        listing = api_client.get(reverse("expense-main-category-list"))
+        assert listing.data["count"] == 0
+        assert api_client.get(reverse("expense-category-list")).data["count"] == 0
+        category.refresh_from_db()
+        assert category.enable_at is None
+
+    def test_enabled_main_category_exposes_enable_at(self, api_client, main_category):
+        resp = api_client.get(reverse("expense-main-category-list"))
+        assert resp.data["results"][0]["enable_at"] is not None
 
     def test_category_crud(self, api_client, main_category):
         url = reverse("expense-category-list")
@@ -97,9 +110,11 @@ class TestExpenseHierarchyAPI:
         resp = api_client.get(url, {"main_category": other_main.id})
         assert resp.data["count"] == 1
 
-    def test_cannot_delete_category_in_use(self, api_client, category):
+    def test_delete_category_in_use_disables_it_and_keeps_expenses(
+        self, api_client, category
+    ):
         client = Client.objects.create(name="t", phone="011")
-        api_client.post(
+        created = api_client.post(
             reverse("expense-list"),
             {
                 "amount": "5",
@@ -109,9 +124,20 @@ class TestExpenseHierarchyAPI:
                 "client": client.id,
             },
         )
-        assert (
-            api_client.delete(
-                reverse("expense-category-detail", args=[category.id])
-            ).status_code
-            == 400
+        assert created.status_code == status.HTTP_201_CREATED
+        resp = api_client.delete(reverse("expense-category-detail", args=[category.id]))
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert api_client.get(reverse("expense-category-list")).data["count"] == 0
+        # existing expense is still listed
+        assert api_client.get(reverse("expense-list")).data["count"] == 1
+        # but new expenses cannot use the disabled category
+        blocked = api_client.post(
+            reverse("expense-list"),
+            {
+                "amount": "5",
+                "description": "d2",
+                "expense_date": "2026-08-02",
+                "category": category.id,
+            },
         )
+        assert blocked.status_code == status.HTTP_400_BAD_REQUEST

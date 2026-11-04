@@ -73,6 +73,8 @@ class ClientService:
         amount,
         paid_at=None,
         notes: str = "",
+        method: str = "cash",
+        invoice=None,
         created_by: AbstractBaseUser | None = None,
         updated_by: AbstractBaseUser | None = None,
     ):
@@ -81,9 +83,10 @@ class ClientService:
         return PaymentService.record(
             client=client,
             amount=amount,
-            invoice=None,
+            invoice=invoice,
             paid_at=paid_at,
             notes=notes,
+            method=method,
             created_by=created_by,
             updated_by=updated_by,
         )

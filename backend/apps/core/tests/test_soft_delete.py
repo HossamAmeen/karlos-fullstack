@@ -118,7 +118,12 @@ def test_api_delete_soft_deletes_row(api, graph, key, detail):
     url = reverse(detail, args=[obj.pk])
     assert api.delete(url).status_code == status.HTTP_204_NO_CONTENT
     assert api.get(url).status_code == status.HTTP_404_NOT_FOUND
-    assert model.all_objects.get(pk=obj.pk).deleted_at is not None
+    row = model.all_objects.get(pk=obj.pk)
+    if key in ("ecat", "main"):
+        # expense categories are disabled (enable_at cleared), not soft-deleted
+        assert row.enable_at is None
+    else:
+        assert row.deleted_at is not None
 
 
 @pytest.mark.django_db

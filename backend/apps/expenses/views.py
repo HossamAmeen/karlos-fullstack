@@ -37,7 +37,8 @@ class ExpenseMainCategoryViewSet(viewsets.ModelViewSet):
         return get_main_categories()
 
     def destroy(self, request, *args, **kwargs):
-        ExpenseMainCategoryService.delete(category=self.get_object())
+        user = request.user if request.user.is_authenticated else None
+        ExpenseMainCategoryService.disable(category=self.get_object(), updated_by=user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -64,7 +65,8 @@ class ExpenseCategoryViewSet(viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     def destroy(self, request, *args, **kwargs):
-        ExpenseCategoryService.delete(category=self.get_object())
+        user = request.user if request.user.is_authenticated else None
+        ExpenseCategoryService.disable(category=self.get_object(), updated_by=user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

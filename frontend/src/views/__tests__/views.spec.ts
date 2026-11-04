@@ -16,6 +16,7 @@ import LoginView from '../LoginView.vue'
 import ServiceCategoriesView from '../ServiceCategoriesView.vue'
 import ServicesView from '../ServicesView.vue'
 import StatisticsView from '../StatisticsView.vue'
+import TreasuryView from '../TreasuryView.vue'
 
 const money = '0.00'
 const statement = {
@@ -38,6 +39,7 @@ const statistics = {
 function respond(url: string) {
   if (url.includes('/statement/')) return statement
   if (url.includes('/statistics/')) return statistics
+  if (url.includes('/payments/summary/')) return { total_payments: money, count: 0, by_method: [] }
   if (url.includes('/expenses/summary/')) return { total_expenses: money, by_main_category: [] }
   if (/\/invoices\/\d+\/$/.test(url.split('?')[0])) return null
   return { count: 0, next: null, previous: null, results: [] }
@@ -53,6 +55,7 @@ const cases: Array<[string, Component, string, Record<string, string>]> = [
   ['Services', ServicesView, '/services', {}],
   ['Invoices', InvoicesView, '/invoices', {}],
   ['InvoiceEditor (new)', InvoiceEditorView, '/invoices/new', {}],
+  ['Treasury', TreasuryView, '/treasury', {}],
   ['Expenses', ExpensesView, '/expenses', {}],
   ['ExpenseMainCategories', ExpenseMainCategoriesView, '/expense-main-categories', {}],
   ['ExpenseCategories', ExpenseCategoriesView, '/expense-categories', {}],

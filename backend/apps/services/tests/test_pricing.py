@@ -13,7 +13,9 @@ from apps.services.pricing import apply_discount, compute_line_subtotal
         (Service.CostMethod.FIXED, "100.00", None, None, None, Decimal("100.00")),
         (Service.CostMethod.QUANTITY, "10.00", "3", None, None, Decimal("30.00")),
         (Service.CostMethod.TWO_DIMENSIONS, "5.00", None, "200", "300", Decimal("50.00")),
-        (Service.CostMethod.ONE_DIMENSION, "4.00", None, None, "500", Decimal("10.00")),
+        (Service.CostMethod.ONE_DIMENSION, "4.00", None, None, "500", Decimal("100.00")),
+        # 200cm x 100cm = 2 m2
+        (Service.CostMethod.ONE_DIMENSION, "10.00", None, "200", "100", Decimal("20.00")),
     ],
 )
 def test_compute_line_subtotal(

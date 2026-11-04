@@ -91,6 +91,10 @@ class ClientDepositWriteSerializer(serializers.Serializer):
     )
     paid_at = serializers.DateField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_blank=True, default="")
+    method = serializers.ChoiceField(choices=Payment.Method.choices, default="cash")
+    invoice = serializers.PrimaryKeyRelatedField(
+        queryset=Invoice.objects.all(), required=False, allow_null=True
+    )
 
 
 class ClientStatementInvoiceSerializer(serializers.ModelSerializer):
@@ -124,6 +128,7 @@ class ClientStatementDepositSerializer(serializers.ModelSerializer):
             "id",
             "amount",
             "paid_at",
+            "method",
             "notes",
             "invoice",
             "invoice_number",

@@ -11,12 +11,13 @@ from apps.expenses.models import (
 
 
 def get_main_categories() -> QuerySet[ExpenseMainCategory]:
-    return ExpenseMainCategory.objects.all()
+    return ExpenseMainCategory.objects.filter(enable_at__isnull=False)
 
 
 def get_categories() -> QuerySet[ExpenseCategory]:
     return (
         ExpenseCategory.objects.select_related("main_category")
+        .filter(enable_at__isnull=False, main_category__enable_at__isnull=False)
         .annotate(
             expenses_count=Count(
                 "expenses", filter=Q(expenses__deleted_at__isnull=True)

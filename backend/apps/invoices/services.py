@@ -31,9 +31,12 @@ class PaymentService:
         invoice: Invoice | None = None,
         paid_at=None,
         notes: str = "",
+        method: str = Payment.Method.CASH,
         created_by: AbstractBaseUser | None = None,
         updated_by: AbstractBaseUser | None = None,
     ) -> Payment:
+        if method not in Payment.Method.values:
+            raise ValidationError({"method": "Invalid payment method."})
         amount = quantize_money(amount)
         if amount <= 0:
             raise ValidationError({"amount": "Payment amount must be > 0."})
@@ -64,6 +67,7 @@ class PaymentService:
             client=client,
             invoice=locked_invoice,
             amount=amount,
+            method=method,
             paid_at=paid_at or timezone.localdate(),
             notes=notes or "",
             created_by=created_by,
@@ -143,6 +147,35 @@ class InvoiceService:
         invoice.total = total
         invoice.is_settled = invoice.amount_paid >= total
         invoice.save(update_fields=["subtotal", "total", "is_settled", "updated_at"])
+        return invoice
+
+    @staticmethod
+    def _ensure_removable(invoice: Invoice) -> None:
+        """Items/pieces may be removed from draft or confirmed invoices until printed."""
+        if invoice.status == Invoice.Status.CANCELLED:
+            raise ValidationError({"status": "Cancelled invoices cannot be modified."})
+        if invoice.printed_at is not None:
+            raise ValidationError(
+                {"printed_at": "Printed invoices cannot be modified."}
+            )
+
+    @staticmethod
+    def _finish_removal(invoice: Invoice) -> Invoice:
+        invoice = InvoiceService._recalculate_locked(invoice)
+        if invoice.status == Invoice.Status.CONFIRMED:
+            if not invoice.items.exists():
+                raise ValidationError(
+                    {"items": "A confirmed invoice needs at least one item."}
+                )
+            if invoice.amount_paid > invoice.total:
+                raise ValidationError(
+                    {
+                        "amount": (
+                            "Paid amount would exceed the new invoice total; "
+                            "remove or adjust payments first."
+                        )
+                    }
+                )
         return invoice
 
     @staticmethod
@@ -518,14 +551,14 @@ class InvoiceService:
     @transaction.atomic
     def remove_piece(*, invoice: Invoice, piece: InvoicePiece) -> Invoice:
         invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
-        InvoiceService._ensure_draft(invoice)
+        InvoiceService._ensure_removable(invoice)
         piece = InvoicePiece.objects.select_for_update().get(
             pk=piece.pk, invoice=invoice
         )
         for item in piece.items.all():
             item.delete()
         piece.delete()
-        return InvoiceService._recalculate_locked(invoice)
+        return InvoiceService._finish_removal(invoice)
 
     @staticmethod
     @transaction.atomic
@@ -654,13 +687,13 @@ class InvoiceService:
         item: InvoiceItem,
     ) -> Invoice:
         invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
-        InvoiceService._ensure_draft(invoice)
+        InvoiceService._ensure_removable(invoice)
         item = InvoiceItem.objects.select_for_update().get(pk=item.pk, invoice=invoice)
         piece = item.piece
         item.delete()
         if not piece.items.exists():
             piece.delete()
-        return InvoiceService._recalculate_locked(invoice)
+        return InvoiceService._finish_removal(invoice)
 
     @staticmethod
     @transaction.atomic
@@ -668,6 +701,7 @@ class InvoiceService:
         *,
         invoice: Invoice,
         amount_paid: Decimal | None = None,
+        method: str = Payment.Method.CASH,
         updated_by: AbstractBaseUser | None = None,
     ) -> Invoice:
         invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
@@ -690,6 +724,7 @@ class InvoiceService:
                 client=invoice.client,
                 invoice=invoice,
                 amount=amount_paid,
+                method=method,
                 created_by=updated_by,
                 updated_by=updated_by,
             )
@@ -705,6 +740,7 @@ class InvoiceService:
         amount: Decimal,
         paid_at=None,
         notes: str = "",
+        method: str = Payment.Method.CASH,
         created_by: AbstractBaseUser | None = None,
         updated_by: AbstractBaseUser | None = None,
     ) -> Invoice:
@@ -714,6 +750,7 @@ class InvoiceService:
             amount=amount,
             paid_at=paid_at,
             notes=notes,
+            method=method,
             created_by=created_by,
             updated_by=updated_by,
         )
@@ -722,6 +759,26 @@ class InvoiceService:
             .prefetch_related("pieces", "items")
             .get(pk=invoice.pk)
         )
+
+    @staticmethod
+    @transaction.atomic
+    def mark_printed(
+        *,
+        invoice: Invoice,
+        updated_by: AbstractBaseUser | None = None,
+    ) -> Invoice:
+        """Record the first print time; printing locks item/piece removal."""
+        invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
+        if invoice.status == Invoice.Status.CANCELLED:
+            raise ValidationError({"status": "Cancelled invoices cannot be printed."})
+        if invoice.printed_at is None:
+            invoice.printed_at = timezone.now()
+            fields = ["printed_at", "updated_at"]
+            if updated_by is not None:
+                invoice.updated_by = updated_by  # type: ignore[assignment]
+                fields.append("updated_by")
+            invoice.save(update_fields=fields)
+        return invoice
 
     @staticmethod
     @transaction.atomic

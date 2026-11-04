@@ -2,8 +2,8 @@ import type { CostMethod } from '@/api/invoices'
 
 /** Piece length / width are entered in centimetres; prices use metres. */
 export const CM_PER_METER = 100
-/** One-dimension (area) measure = length * width / AREA_DIVISOR (300 x 500 cm -> 1.5). */
-export const AREA_DIVISOR = 100000
+/** One-dimension (area) measure = length * width / AREA_DIVISOR (200 x 100 cm -> 2 m²; each side is divided by 100). */
+export const AREA_DIVISOR = 10000
 
 export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100

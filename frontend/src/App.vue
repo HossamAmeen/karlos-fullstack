@@ -16,6 +16,7 @@ const navItems = [
   { name: 'service-categories', to: '/service-categories', label: 'الخدمات الرئيسية' },
   { name: 'services', to: '/services', label: 'الخدمات' },
   { name: 'invoices', to: '/invoices', label: 'الفواتير' },
+  { name: 'treasury', to: '/treasury', label: 'الخزنة' },
 ] as const
 
 const expenseNavItems = [

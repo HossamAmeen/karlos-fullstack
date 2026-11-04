@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any
 
 from django.db import transaction
-from rest_framework.exceptions import ValidationError
+from django.utils import timezone
 
 from apps.clients.models import Client
 from apps.expenses.models import (
@@ -35,10 +35,21 @@ class ExpenseMainCategoryService:
         return category
 
     @staticmethod
-    def delete(*, category: ExpenseMainCategory) -> None:
-        if category.categories.exists():
-            raise ValidationError("Cannot delete a main category that has categories.")
-        category.delete()
+    def disable(*, category: ExpenseMainCategory, updated_by: Any = None) -> None:
+        """"Delete" = disable: hide it (and its sub-categories) from lists.
+
+        History stays intact because existing expenses keep pointing at the rows.
+        """
+        with transaction.atomic():
+            ExpenseCategory.objects.filter(main_category=category).update(
+                enable_at=None, updated_at=timezone.now()
+            )
+            category.enable_at = None
+            fields = ["enable_at", "updated_at"]
+            if updated_by is not None:
+                category.updated_by = updated_by
+                fields.append("updated_by")
+            category.save(update_fields=fields)
 
 
 class ExpenseCategoryService:
@@ -90,10 +101,13 @@ class ExpenseCategoryService:
         return category
 
     @staticmethod
-    def delete(*, category: ExpenseCategory) -> None:
-        if category.expenses.exists():
-            raise ValidationError("Cannot delete a category that has expenses.")
-        category.delete()
+    def disable(*, category: ExpenseCategory, updated_by: Any = None) -> None:
+        category.enable_at = None
+        fields = ["enable_at", "updated_at"]
+        if updated_by is not None:
+            category.updated_by = updated_by
+            fields.append("updated_by")
+        category.save(update_fields=fields)
 
 
 class ExpenseService:

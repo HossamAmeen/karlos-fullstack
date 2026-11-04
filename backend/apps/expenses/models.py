@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 from apps.clients.models import Client
 from utils.models import BaseModel
@@ -6,6 +7,8 @@ from utils.models import BaseModel
 
 class ExpenseMainCategory(BaseModel):
     name = models.CharField(max_length=255)
+    # enabled since this moment; NULL means the category is disabled.
+    enable_at = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     class Meta:
         ordering = ["name", "id"]
@@ -32,6 +35,8 @@ class ExpenseCategory(BaseModel):
     name = models.CharField(max_length=255)
     order_number = models.PositiveIntegerField(default=0)
     is_shown = models.BooleanField(default=True)
+    # enabled since this moment; NULL means the category is disabled.
+    enable_at = models.DateTimeField(null=True, blank=True, default=timezone.now)
 
     class Meta:
         ordering = ["main_category__name", "order_number", "name", "id"]

@@ -8,6 +8,7 @@ import {
   type ExpenseCategory,
   type ExpenseCategoryDetail,
 } from '@/api/expenseCategories'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import UiButton from '@/components/ui/UiButton.vue'
 import UiCard from '@/components/ui/UiCard.vue'
 import UiDialog from '@/components/ui/UiDialog.vue'
@@ -16,6 +17,7 @@ import UiLabel from '@/components/ui/UiLabel.vue'
 import UiSelect from '@/components/ui/UiSelect.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useExpenseCategoriesStore } from '@/stores/expenseCategories'
+import { apiErrorText } from '@/utils/apiError'
 
 const auth = useAuthStore()
 const store = useExpenseCategoriesStore()
@@ -97,21 +99,43 @@ async function onSubmit() {
     await reload()
   } catch (err) {
     await handleAuthError(err)
-    formError.value = err instanceof ApiError ? err.message : 'فشل الحفظ.'
+    formError.value = apiErrorText(err, 'فشل الحفظ.')
   } finally {
     saving.value = false
   }
 }
 
-async function onDelete(item: ExpenseCategory) {
-  if (!confirm(`حذف التصنيف «${item.name}»؟`)) return
+const confirmOpen = ref(false)
+const errorOpen = ref(false)
+const errorMessage = ref('')
+const pendingItem = ref<ExpenseCategory | null>(null)
+const disabling = ref(false)
+
+function onDelete(item: ExpenseCategory) {
+  pendingItem.value = item
+  confirmOpen.value = true
+}
+
+async function confirmDisable() {
+  const item = pendingItem.value
+  if (!item || disabling.value) return
+  disabling.value = true
   try {
     await store.removeCategory(item.id)
     await reload()
+    confirmOpen.value = false
   } catch (err) {
     await handleAuthError(err)
-    if (err instanceof ApiError) alert(err.message)
+    confirmOpen.value = false
+    errorMessage.value = apiErrorText(err, 'تعذر تعطيل التصنيف.')
+    errorOpen.value = true
+  } finally {
+    disabling.value = false
   }
+}
+
+function formatDateTime(value: string | null) {
+  return value ? new Date(value).toLocaleString('ar-EG') : '—'
 }
 
 const detailOpen = ref(false)
@@ -191,12 +215,13 @@ onMounted(async () => {
               <th>التصنيف الرئيسي</th>
               <th>الترتيب</th>
               <th>يظهر في المصروفات</th>
+              <th>تاريخ التفعيل</th>
               <th>إجراءات</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="store.loading">
-              <td colspan="6" class="ui-empty">جارٍ التحميل…</td>
+              <td colspan="7" class="ui-empty">جارٍ التحميل…</td>
             </tr>
             <tr v-else-if="store.categories.length === 0">
               <td colspan="6" class="ui-empty">لا توجد تصنيفات فرعية.</td>
@@ -207,6 +232,7 @@ onMounted(async () => {
               <td>{{ item.main_category_name }}</td>
               <td>{{ item.order_number }}</td>
               <td>{{ item.is_shown ? 'نعم' : 'لا' }}</td>
+              <td>{{ formatDateTime(item.enable_at) }}</td>
               <td>
                 <div class="row-actions">
                   <UiButton variant="outline" size="sm" @click="goToExpenses(item)">المصروفات</UiButton>
@@ -220,6 +246,22 @@ onMounted(async () => {
         </table>
       </div>
     </UiCard>
+
+    <ConfirmDialog
+      v-model:open="confirmOpen"
+      title="تعطيل التصنيف"
+      :message="`سيتم تعطيل «${pendingItem?.name ?? ''}» وسيختفي من القوائم ولن يمكن إضافة مصروفات جديدة عليه. المصروفات المسجلة سابقًا لن تتأثر.`"
+      confirm-label="تعطيل"
+      danger
+      :busy="disabling"
+      @confirm="confirmDisable"
+    />
+    <ConfirmDialog
+      v-model:open="errorOpen"
+      kind="error"
+      title="تعذر تنفيذ العملية"
+      :message="errorMessage"
+    />
 
     <UiDialog
       v-model:open="dialogOpen"

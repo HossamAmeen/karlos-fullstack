@@ -84,3 +84,26 @@ class ClientApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(reuse.status_code, status.HTTP_201_CREATED)
+
+
+class ClientSearchTests(APITestCase):
+    def setUp(self) -> None:
+        user = User.objects.create_user(username="searcher", password="pass12345")
+        self.client.force_authenticate(user=user)
+        self.url = reverse("client-list")
+        Client.objects.create(name="Ahmed Glass", phone="01011111111", email="x@y.com")
+        Client.objects.create(name="Mona", phone="01022222222")
+
+    def _names(self, term: str) -> set[str]:
+        response = self.client.get(self.url, {"search": term})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return {row["name"] for row in response.data["results"]}
+
+    def test_search_by_name(self) -> None:
+        self.assertEqual(self._names("ahmed"), {"Ahmed Glass"})
+
+    def test_search_by_phone(self) -> None:
+        self.assertEqual(self._names("0102222"), {"Mona"})
+
+    def test_search_no_match(self) -> None:
+        self.assertEqual(self._names("zzz"), set())
