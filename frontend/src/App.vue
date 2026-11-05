@@ -137,12 +137,26 @@ async function onLogout() {
   z-index: 40;
   width: 16rem;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 0.5rem;
   padding: 1.5rem 1rem;
   background: hsl(var(--sidebar));
   border-left: 1px solid hsl(var(--sidebar-border));
+}
+
+.sidebar-top {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.sidebar-bottom {
+  flex: none;
 }
 
 .menu-toggle {
@@ -302,6 +316,8 @@ async function onLogout() {
   .sidebar-top {
     display: grid;
     gap: 0.75rem;
+    overflow: visible;
+    flex: none;
   }
 
   .brand {
