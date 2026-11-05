@@ -333,3 +333,157 @@
     flex: 1;
   }
 }
+
+/* ===== Modern polish ===== */
+body {
+  background: linear-gradient(180deg, hsl(210 40% 98%), hsl(214 32% 96%));
+  background-attachment: fixed;
+  -webkit-tap-highlight-color: transparent;
+}
+.ui-card {
+  box-shadow: 0 1px 2px hsl(222 47% 11% / 0.04), 0 8px 24px hsl(222 47% 11% / 0.04);
+  border-radius: calc(var(--radius) + 4px);
+}
+.ui-btn {
+  border-radius: calc(var(--radius) + 1px);
+}
+.ui-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.ui-btn:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.ui-table th {
+  background: hsl(var(--muted) / 0.6);
+}
+.ui-table th:first-child {
+  border-top-right-radius: calc(var(--radius) - 2px);
+  border-bottom-right-radius: calc(var(--radius) - 2px);
+}
+.ui-table th:last-child {
+  border-top-left-radius: calc(var(--radius) - 2px);
+  border-bottom-left-radius: calc(var(--radius) - 2px);
+}
+.install-btn {
+  width: 100%;
+}
+.nav-link {
+  border-radius: calc(var(--radius) + 1px);
+}
+
+/* Standalone (installed PWA): respect notches / home indicator */
+.content {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+@media (display-mode: standalone) {
+  body {
+    overscroll-behavior-y: contain;
+  }
+}
+
+/* ===== Tablets ===== */
+@media screen and (max-width: 1024px) {
+  .content {
+    padding: 1.25rem 1rem;
+  }
+}
+
+/* ===== Phones ===== */
+@media screen and (max-width: 640px) {
+  /* touch-friendly controls; 16px inputs stop iOS from zooming on focus */
+  .ui-input,
+  .ui-select,
+  .ui-textarea {
+    font-size: 16px;
+    height: 2.9rem;
+  }
+  .ui-textarea {
+    height: auto;
+  }
+  .ui-btn {
+    height: 2.9rem;
+  }
+  .ui-btn-sm {
+    height: 2.4rem;
+  }
+  .ui-btn-icon {
+    height: 2.4rem;
+    width: 2.4rem;
+  }
+
+  /* dialogs become bottom sheets */
+  .ui-dialog-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .ui-dialog {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 1.25rem 1.25rem 0 0;
+    padding-bottom: calc(1.1rem + env(safe-area-inset-bottom));
+  }
+
+  /* tables -> stacked cards (class + data-label added by utils/responsiveTables) */
+  .ui-table-wrap,
+  .table-wrap {
+    overflow: visible;
+  }
+  table.stack,
+  table.stack tbody,
+  table.stack tfoot,
+  table.stack tr,
+  table.stack td {
+    display: block;
+    width: 100%;
+  }
+  table.stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  table.stack tr {
+    margin-bottom: 0.7rem;
+    padding: 0.35rem 0.85rem;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) + 2px);
+    box-shadow: 0 1px 2px hsl(222 47% 11% / 0.04);
+  }
+  table.stack tbody tr:hover {
+    background: hsl(var(--card));
+  }
+  table.stack td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0 !important;
+    border: none !important;
+    text-align: start !important;
+    min-height: 2.2rem;
+  }
+  table.stack td + td {
+    border-top: 1px dashed hsl(var(--border)) !important;
+  }
+  table.stack td::before {
+    content: attr(data-label);
+    flex: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+  }
+  table.stack td[data-label='']::before {
+    display: none;
+  }
+  table.stack td[colspan] {
+    justify-content: center;
+  }
+  table.stack td .row-actions {
+    justify-content: flex-end;
+  }
+}

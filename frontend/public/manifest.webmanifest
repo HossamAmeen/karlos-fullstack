@@ -1,0 +1,23 @@
+{
+  "name": "لوحة التحكم - مصنع الزجاج",
+  "short_name": "لوحة التحكم",
+  "description": "إدارة العملاء والفواتير والخزنة والمصروفات",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e2952",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "الفواتير", "url": "/invoices", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "الخزنة", "url": "/treasury", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

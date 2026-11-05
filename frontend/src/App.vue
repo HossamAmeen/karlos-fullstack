@@ -6,6 +6,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import UiButton from '@/components/ui/UiButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import { APP_VERSION } from '@/version'
+import { canInstall, promptInstall } from '@/utils/pwa'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -103,6 +104,9 @@ async function onLogout() {
 
       <div class="sidebar-bottom">
         <p class="app-version" aria-label="إصدار التطبيق">{{ APP_VERSION }}</p>
+        <UiButton v-if="canInstall" variant="secondary" class="install-btn" @click="promptInstall">
+          تثبيت التطبيق
+        </UiButton>
         <UiButton variant="outline" class="logout-btn" @click="onLogout">
           تسجيل الخروج
         </UiButton>
@@ -286,6 +290,11 @@ async function onLogout() {
     position: sticky;
     width: 100%;
     height: auto;
+    max-height: 100dvh;
+    overflow-y: auto;
+    padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
+    backdrop-filter: blur(10px);
+    background: hsl(var(--sidebar) / 0.92);
     border-left: none;
     border-bottom: 1px solid hsl(var(--sidebar-border));
   }
@@ -302,9 +311,26 @@ async function onLogout() {
   }
 
   .nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .nav-link {
+    padding: 0.8rem 0.85rem;
+    text-align: center;
+  }
+
+  .nav-sub {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-inline-start: 0;
+    padding-inline-start: 0;
+    border-inline-start: none;
+  }
+
+  .nav-group-toggle {
+    grid-column: 1 / -1;
   }
 
   .sidebar-bottom {

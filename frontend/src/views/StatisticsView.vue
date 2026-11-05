@@ -368,6 +368,16 @@ h1 {
 .stat-value[data-negative='true'] {
   color: hsl(var(--destructive));
 }
+@media (max-width: 640px) {
+  .box {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .stats.three {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
 .stat-sub {
   margin: 0.25rem 0 0;
   color: hsl(var(--muted-foreground));
