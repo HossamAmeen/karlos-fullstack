@@ -223,5 +223,5 @@ def test_expense_update_delete_and_filters(api):
 @pytest.mark.django_db
 def test_statistics_shape(api):
     data = api.get(reverse("statistics")).data
-    assert {"total_invoices", "total_expenses", "current_money", "month", "year"} <= set(data)
+    assert {"total_invoices", "total_expenses", "today", "period", "month", "year"} <= set(data)
     assert "profit" in data["month"] and "profit" in data["year"]

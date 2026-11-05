@@ -131,13 +131,18 @@ class InvoiceService:
         return piece
 
     @staticmethod
-    def _recalculate_locked(invoice: Invoice) -> Invoice:
+    def _recalculate_locked(
+        invoice: Invoice, *, drop_excess_discount: bool = False
+    ) -> Invoice:
         pieces = list(invoice.pieces.all())
         for piece in pieces:
             InvoiceService._recalculate_piece(piece)
         subtotal = quantize_money(
             sum((piece.piece_total for piece in pieces), Decimal("0"))
         )
+        if drop_excess_discount and invoice.discount_amount > subtotal:
+            # After a removal the discount no longer fits: cancel it.
+            invoice.discount_amount = Decimal("0.00")
         total = apply_discount(
             amount=subtotal,
             discount=invoice.discount_amount,
@@ -146,7 +151,15 @@ class InvoiceService:
         invoice.subtotal = subtotal
         invoice.total = total
         invoice.is_settled = invoice.amount_paid >= total
-        invoice.save(update_fields=["subtotal", "total", "is_settled", "updated_at"])
+        invoice.save(
+            update_fields=[
+                "subtotal",
+                "total",
+                "discount_amount",
+                "is_settled",
+                "updated_at",
+            ]
+        )
         return invoice
 
     @staticmethod
@@ -161,7 +174,9 @@ class InvoiceService:
 
     @staticmethod
     def _finish_removal(invoice: Invoice) -> Invoice:
-        invoice = InvoiceService._recalculate_locked(invoice)
+        invoice = InvoiceService._recalculate_locked(
+            invoice, drop_excess_discount=True
+        )
         if invoice.status == Invoice.Status.CONFIRMED:
             if not invoice.items.exists():
                 raise ValidationError(
@@ -440,7 +455,26 @@ class InvoiceService:
         updated_by: AbstractBaseUser | None = None,
     ) -> Invoice:
         invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
-        InvoiceService._ensure_draft(invoice)
+        if invoice.status != Invoice.Status.DRAFT:
+            # A confirmed invoice may only get its discount changed, and only
+            # while it is neither printed nor (partly) paid.
+            if (
+                invoice.status != Invoice.Status.CONFIRMED
+                or client is not None
+                or notes is not None
+                or issue_date is not None
+            ):
+                raise ValidationError(
+                    {"status": "Only draft invoices can be modified."}
+                )
+            if invoice.printed_at is not None:
+                raise ValidationError(
+                    {"printed_at": "Printed invoices cannot be modified."}
+                )
+            if invoice.amount_paid > 0:
+                raise ValidationError(
+                    {"amount_paid": "Paid invoices cannot be modified."}
+                )
 
         if client is not None:
             if client.deleted_at is not None:

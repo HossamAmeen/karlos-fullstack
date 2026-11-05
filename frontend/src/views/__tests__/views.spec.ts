@@ -31,9 +31,19 @@ const statement = {
 const statistics = {
   total_invoices: money,
   total_expenses: money,
-  current_money: money,
+  today: { date: '2026-11-05', payments: money, expenses: money, cash: money },
   month: { invoices: money, expenses: money, profit: money },
   year: { invoices: money, expenses: money, profit: money },
+  period: {
+    date_from: '2026-11-01',
+    date_to: '2026-11-30',
+    invoices: money,
+    payments: money,
+    expenses: money,
+    profit: money,
+    group: 'day',
+    series: [],
+  },
 }
 
 function respond(url: string) {

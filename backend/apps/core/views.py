@@ -1,7 +1,10 @@
+from datetime import date
+
 from django.conf import settings
 from django.db import connection
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -36,7 +39,18 @@ class StatisticsView(APIView):
 
     @extend_schema(tags=["statistics"], responses={200: dict})
     def get(self, request):
-        return Response(get_statistics())
+        def _parse(name: str) -> date | None:
+            raw = request.query_params.get(name)
+            if not raw:
+                return None
+            try:
+                return date.fromisoformat(raw)
+            except ValueError:
+                raise ValidationError({name: "Invalid date (use YYYY-MM-DD)."})
+
+        return Response(
+            get_statistics(date_from=_parse("date_from"), date_to=_parse("date_to"))
+        )
 
 
 class BackupView(APIView):

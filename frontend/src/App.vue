@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 
@@ -111,6 +112,7 @@ async function onLogout() {
     <main class="content" :class="{ narrow: !auth.isAuthenticated }">
       <RouterView />
     </main>
+    <ConfirmDialog />
   </div>
 </template>
 

@@ -56,7 +56,6 @@ class StatisticsApiTests(APITestCase):
         data = self.client.get(reverse("statistics")).data
         self.assertEqual(data["total_invoices"], Decimal("1500.00"))
         self.assertEqual(data["total_expenses"], Decimal("320.00"))
-        self.assertEqual(data["current_money"], Decimal("1180.00"))
         self.assertEqual(data["year"]["profit"], Decimal("1250.00"))
         if today.month == 1:
             self.assertEqual(data["month"]["profit"], Decimal("1250.00"))
@@ -70,3 +69,53 @@ class StatisticsApiTests(APITestCase):
             reverse("client-statement", args=[self.customer.pk])
         ).data
         self.assertEqual(data["total_expenses"], "30.00")
+
+
+class StatisticsPeriodTests(StatisticsApiTests):
+    def test_period_filter_and_payments(self) -> None:
+        from apps.invoices.models import Payment
+
+        self._invoice("P1", "100", date(2025, 3, 5), Invoice.Status.CONFIRMED)
+        self._invoice("P2", "40", date(2025, 4, 5), Invoice.Status.CONFIRMED)
+        self._expense("10", date(2025, 3, 6))
+        Payment.objects.create(
+            client=self.customer, amount=Decimal("25"), paid_at=date(2025, 3, 7)
+        )
+        data = self.client.get(
+            reverse("statistics"),
+            {"date_from": "2025-03-01", "date_to": "2025-03-31"},
+        ).data["period"]
+        self.assertEqual(data["invoices"], Decimal("100.00"))
+        self.assertEqual(data["payments"], Decimal("25.00"))
+        self.assertEqual(data["expenses"], Decimal("10.00"))
+        self.assertEqual(data["profit"], Decimal("90.00"))
+        self.assertEqual(data["group"], "day")
+        self.assertEqual(len(data["series"]), 31)
+
+    def test_year_range_groups_by_month(self) -> None:
+        data = self.client.get(
+            reverse("statistics"),
+            {"date_from": "2025-01-01", "date_to": "2025-12-31"},
+        ).data["period"]
+        self.assertEqual(data["group"], "month")
+        self.assertEqual(len(data["series"]), 12)
+
+    def test_invalid_date(self) -> None:
+        r = self.client.get(reverse("statistics"), {"date_from": "nope"})
+        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_today_boxes(self) -> None:
+        from django.utils import timezone
+
+        from apps.invoices.models import Payment
+
+        today = timezone.localdate()
+        Payment.objects.create(client=self.customer, amount=Decimal("90"), paid_at=today)
+        Payment.objects.create(
+            client=self.customer, amount=Decimal("5"), paid_at=date(2020, 1, 1)
+        )
+        self._expense("30", today)
+        data = self.client.get(reverse("statistics")).data["today"]
+        self.assertEqual(data["payments"], Decimal("90.00"))
+        self.assertEqual(data["expenses"], Decimal("30.00"))
+        self.assertEqual(data["cash"], Decimal("60.00"))

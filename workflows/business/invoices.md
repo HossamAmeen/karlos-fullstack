@@ -45,6 +45,12 @@ Example: piece `3 × 2` with area glass + perimeter polish + a fixed install fee
 
 Invoice `subtotal` = sum of all `piece_total`. Invoice `total` = `subtotal` minus invoice `discount_amount`.
 
+The invoice discount can be changed (`PATCH /invoices/{id}/` with only `discount_amount`) while the invoice is a draft, **or** while it is confirmed, not printed (`printed_at` empty) and unpaid (`amount_paid = 0`); otherwise 400. Other header fields stay draft-only. The UI has a «خصم الفاتورة» input + «تطبيق» in the summary card. The confirm panel defaults to «بدون دفع».
+
+Removing the last service/piece (or any removal after which the discount exceeds the new subtotal) **cancels the invoice discount automatically** (`discount_amount = 0`) instead of failing.
+
+**Auto-settle on deposit:** a standalone deposit (`POST /clients/{id}/deposits/` without `invoice`) is applied to the client's latest confirmed invoice when `amount >= amount_remaining` and `amount − amount_remaining < 50` (`AUTO_SETTLE_LIMIT` in `apps/clients/services.py`). The invoice is marked paid via a linked `Payment` of the remaining amount; any excess stays as a separate standalone deposit (client credit). Otherwise the deposit stays standalone.
+
 ### Piece rules
 
 1. A piece must have at least one service.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from '@/utils/confirm'
 import { onMounted, reactive, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -207,7 +208,7 @@ async function onSubmit() {
 }
 
 async function onDelete(expense: Expense) {
-  if (!confirm(`حذف المصروف «${expense.description}» بقيمة ${expense.amount}؟`)) return
+  if (!(await askConfirm({ title: 'حذف المصروف', message: `هل تريد حذف المصروف «${expense.description}» بقيمة ${expense.amount}؟`, confirmText: 'حذف' }))) return
 
   try {
     await expenses.remove(expense.id)

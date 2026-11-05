@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from '@/utils/confirm'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -166,7 +167,7 @@ async function onDelete(category: ServiceCategory) {
       ? `حذف الخدمة الرئيسية «${category.name}» سيؤدي أيضًا إلى حذف ${count} خدمة مرتبطة. هل تريد المتابعة؟`
       : `حذف الخدمة الرئيسية «${category.name}»؟`
 
-  if (!confirm(message)) return
+  if (!(await askConfirm({ title: 'حذف الخدمة الرئيسية', message, confirmText: 'حذف' }))) return
 
   try {
     await categories.remove(category.id)

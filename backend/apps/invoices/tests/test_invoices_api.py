@@ -547,6 +547,102 @@ class InvoicePrintTests(APITestCase):
         self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(len(self._item_ids(inv["id"])), 2)
 
+    def _patch(self, inv_id: int, data: dict):
+        return self.client.patch(
+            reverse("invoice-detail", args=[inv_id]), data, format="json"
+        )
+
+    def test_confirmed_unpaid_unprinted_allows_discount(self) -> None:
+        inv = self._invoice_with_items()
+        self.client.post(reverse("invoice-confirm", args=[inv["id"]]), {}, format="json")
+        resp = self._patch(inv["id"], {"discount_amount": "20.00"})
+        self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.data["discount_amount"], "20.00")
+        self.assertEqual(resp.data["total"], "80.00")
+
+    def test_confirmed_discount_blocked_when_printed_or_paid(self) -> None:
+        inv = self._invoice_with_items()
+        self.client.post(
+            reverse("invoice-confirm", args=[inv["id"]]),
+            {"amount_paid": "10.00"},
+            format="json",
+        )
+        self.assertEqual(
+            self._patch(inv["id"], {"discount_amount": "5"}).status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        inv2 = self._invoice_with_items()
+        self.client.post(reverse("invoice-confirm", args=[inv2["id"]]), {}, format="json")
+        self.client.post(reverse("invoice-print-invoice", args=[inv2["id"]]))
+        self.assertEqual(
+            self._patch(inv2["id"], {"discount_amount": "5"}).status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+
+    def test_confirmed_other_header_fields_still_blocked(self) -> None:
+        inv = self._invoice_with_items()
+        self.client.post(reverse("invoice-confirm", args=[inv["id"]]), {}, format="json")
+        resp = self._patch(inv["id"], {"notes": "x", "discount_amount": "5"})
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_removing_last_item_cancels_discount(self) -> None:
+        inv = self._invoice_with_items()
+        self._patch(inv["id"], {"discount_amount": "20.00"})
+        for item_id in self._item_ids(inv["id"]):
+            resp = self.client.delete(
+                reverse("invoice-item-detail", args=[inv["id"], item_id])
+            )
+            self.assertEqual(resp.status_code, status.HTTP_200_OK, resp.data)
+        self.assertEqual(resp.data["discount_amount"], "0.00")
+        self.assertEqual(resp.data["total"], "0.00")
+
+    def test_removing_item_keeps_discount_when_it_still_fits(self) -> None:
+        inv = self._invoice_with_items()
+        self._patch(inv["id"], {"discount_amount": "20.00"})
+        resp = self.client.delete(
+            reverse("invoice-item-detail", args=[inv["id"], self._item_ids(inv["id"])[0]])
+        )
+        self.assertEqual(resp.data["discount_amount"], "20.00")
+
+
+class DepositAutoSettleTests(InvoicePrintTests):
+    def _confirmed(self) -> dict:
+        inv = self._invoice_with_items()
+        self.client.post(reverse("invoice-confirm", args=[inv["id"]]), {}, format="json")
+        return inv
+
+    def _deposit(self, amount: str):
+        return self.client.post(
+            reverse("client-deposits", args=[self.client_obj.id]),
+            {"amount": amount},
+            format="json",
+        )
+
+    def test_deposit_covering_last_invoice_settles_it(self) -> None:
+        inv = self._confirmed()  # total 100
+        self.assertEqual(self._deposit("120").status_code, status.HTTP_201_CREATED)
+        got = Invoice.objects.get(pk=inv["id"])
+        self.assertTrue(got.is_settled)
+        self.assertEqual(got.amount_paid, Decimal("100.00"))
+        self.assertEqual(got.payments.count(), 1)
+        # excess 20 stays as client credit (standalone deposit)
+        self.assertEqual(self.client_obj.payments.count(), 2)
+
+    def test_exact_amount_settles(self) -> None:
+        inv = self._confirmed()
+        self._deposit("100")
+        self.assertTrue(Invoice.objects.get(pk=inv["id"]).is_settled)
+
+    def test_excess_of_50_or_more_stays_plain_deposit(self) -> None:
+        inv = self._confirmed()
+        self._deposit("150")
+        self.assertFalse(Invoice.objects.get(pk=inv["id"]).is_settled)
+
+    def test_smaller_amount_stays_plain_deposit(self) -> None:
+        inv = self._confirmed()
+        self._deposit("60")
+        self.assertFalse(Invoice.objects.get(pk=inv["id"]).is_settled)
+
 
 class PaymentMethodTests(InvoicePrintTests):
     """Reuses InvoicePrintTests.setUp helpers (own tests only below)."""

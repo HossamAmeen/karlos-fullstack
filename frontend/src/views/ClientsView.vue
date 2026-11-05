@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from '@/utils/confirm'
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -123,7 +124,7 @@ async function onSubmit() {
 }
 
 async function onDelete(client: Client) {
-  if (!confirm(`حذف العميل «${client.name}»؟`)) return
+  if (!(await askConfirm({ title: 'حذف العميل', message: `هل تريد حذف العميل «${client.name}»؟`, confirmText: 'حذف' }))) return
   try {
     await clients.remove(client.id)
     if (editingId.value === client.id) closeDialog()

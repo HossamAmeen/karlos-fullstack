@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from '@/utils/confirm'
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -97,7 +98,7 @@ const extraError = ref<string | null>(null)
 const savingHeader = ref(false)
 const savingItem = ref(false)
 const acting = ref(false)
-const confirmMode = ref<'completed' | 'without_paid' | 'partial'>('completed')
+const confirmMode = ref<'completed' | 'without_paid' | 'partial'>('without_paid')
 const payAmount = ref('')
 const payMethod = ref<PaymentMethod>('cash')
 const payNotes = ref('')
@@ -858,7 +859,7 @@ function openExtraForm(pieceId: number) {
 
 async function removeItem(itemId: number) {
   if (!invoice.value || !removable.value || acting.value) return
-  if (invoice.value.status === 'confirmed' && !window.confirm('الفاتورة مؤكدة، سيتغير إجماليها بعد الحذف. متابعة؟')) return
+  if (invoice.value.status === 'confirmed' && !(await askConfirm({ title: 'حذف من فاتورة مؤكدة', message: 'الفاتورة مؤكدة، سيتغير إجماليها بعد الحذف. متابعة؟', confirmText: 'حذف' }))) return
   acting.value = true
   try {
     await invoices.removeItem(invoice.value.id, itemId)
@@ -872,7 +873,7 @@ async function removeItem(itemId: number) {
 
 async function removePiece(pieceId: number) {
   if (!invoice.value || !removable.value || acting.value) return
-  if (invoice.value.status === 'confirmed' && !window.confirm('الفاتورة مؤكدة، سيتغير إجماليها بعد الحذف. متابعة؟')) return
+  if (invoice.value.status === 'confirmed' && !(await askConfirm({ title: 'حذف من فاتورة مؤكدة', message: 'الفاتورة مؤكدة، سيتغير إجماليها بعد الحذف. متابعة؟', confirmText: 'حذف' }))) return
   acting.value = true
   try {
     await invoices.removePiece(invoice.value.id, pieceId)
@@ -918,6 +919,44 @@ async function applyDiscountDialog() {
   if (invoice.value) await saveAndContinue()
 }
 
+/** Discount can change while draft, or on a confirmed invoice that is unprinted and unpaid. */
+const discountEditable = computed(() => {
+  const inv = invoice.value
+  if (!inv) return false
+  if (inv.status === 'draft') return true
+  return inv.status === 'confirmed' && !inv.printed_at && Number(inv.amount_paid) === 0
+})
+const summaryDiscount = ref('0')
+const savingDiscount = ref(false)
+const discountError = ref<string | null>(null)
+watch(
+  () => invoice.value?.discount_amount,
+  (v) => {
+    summaryDiscount.value = v ?? '0'
+  },
+  { immediate: true },
+)
+async function saveSummaryDiscount() {
+  if (!invoice.value || savingDiscount.value) return
+  savingDiscount.value = true
+  discountError.value = null
+  try {
+    const value = summaryDiscount.value || '0'
+    if (invoice.value.status === 'draft') {
+      header.discount_amount = value
+      await saveAndContinue()
+    } else {
+      await invoices.updateHeader(invoice.value.id, { discount_amount: value })
+      header.discount_amount = value
+    }
+  } catch (err) {
+    await handleAuthError(err)
+    discountError.value = apiErrorMessage(err, 'تعذر تطبيق الخصم.')
+  } finally {
+    savingDiscount.value = false
+  }
+}
+
 async function loadLookups() {
   await Promise.all([categories.fetchAll(), services.fetchAll()])
   if (!extraForm.category && availableCategories.value[0]) {
@@ -932,8 +971,8 @@ async function loadInvoice(id: number) {
   header.discount_amount = data.discount_amount
   header.notes = data.notes
   header.issue_date = data.issue_date
-  confirmMode.value = 'completed'
-  syncConfirmAmount('completed')
+  confirmMode.value = 'without_paid'
+  syncConfirmAmount('without_paid')
 }
 
 async function saveAndContinue() {
@@ -1040,7 +1079,7 @@ async function recordPayment() {
 
 async function cancel() {
   if (!invoice.value || acting.value) return
-  if (!window.confirm('هل تريد إلغاء الفاتورة؟')) return
+  if (!(await askConfirm({ title: 'إلغاء الفاتورة', message: 'هل تريد إلغاء الفاتورة؟', confirmText: 'إلغاء الفاتورة', cancelText: 'رجوع' }))) return
   acting.value = true
   try {
     await invoices.cancel(invoice.value.id)
@@ -1614,7 +1653,27 @@ watch(
       <UiCard class="summary sticky">
         <h2 class="section-title">الملخص</h2>
         <div class="summary-row"><span>مجموع القطع</span><strong>{{ invoice.subtotal }}</strong></div>
-        <div class="summary-row"><span>خصم الفاتورة</span><strong>{{ invoice.discount_amount }}</strong></div>
+        <div v-if="!discountEditable" class="summary-row">
+          <span>خصم الفاتورة</span><strong>{{ invoice.discount_amount }}</strong>
+        </div>
+        <div v-else class="discount-box">
+          <UiLabel html-for="summary-discount">خصم الفاتورة</UiLabel>
+          <div class="discount-row">
+            <UiInput id="summary-discount" v-model="summaryDiscount" type="number" min="0" step="0.01" />
+            <UiButton
+              type="button"
+              variant="outline"
+              :disabled="savingDiscount || summaryDiscount === invoice.discount_amount"
+              @click="saveSummaryDiscount"
+            >
+              {{ savingDiscount ? '...' : 'تطبيق' }}
+            </UiButton>
+          </div>
+          <p v-if="discountError" class="error">{{ discountError }}</p>
+          <p v-else-if="invoice.status === 'confirmed'" class="muted small">
+            يمكن تعديل الخصم قبل الطباعة وقبل أي دفعة.
+          </p>
+        </div>
         <div class="summary-row total"><span>الإجمالي</span><strong>{{ invoice.total }}</strong></div>
         <template v-if="invoice.status !== 'draft'">
           <div class="summary-row"><span>المدفوع</span><strong>{{ invoice.amount_paid }}</strong></div>
@@ -1810,6 +1869,20 @@ watch(
     padding: 0.4rem;
     text-align: right;
   }
+}
+.discount-box {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.4rem 0;
+}
+.discount-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+.small {
+  font-size: 0.8rem;
+  margin: 0;
 }
 </style>
 
