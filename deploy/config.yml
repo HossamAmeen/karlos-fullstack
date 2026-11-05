@@ -1,5 +1,5 @@
 staging:
-  ip: 8.230.103.229
+  ip: 136.70.44.242
   username: hossam
   ssh_file: ~/.ssh/google_compute_engine
   docker: false                      # true: run both projects with docker compose instead of systemd/venv
