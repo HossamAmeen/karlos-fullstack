@@ -1261,8 +1261,8 @@ watch(
         <div class="pieces">
           <article v-for="piece in invoicePieces" :key="piece.id" class="piece-card">
             <header class="piece-header">
-              <div>
-                <strong>قطعة {{ pieceSizeLabel(piece.length, piece.width) }}</strong>
+              <div class="piece-title">
+                <strong class="piece-size">قطعة {{ pieceSizeLabel(piece.length, piece.width) }}</strong>
                 <p class="muted">عدد القطع: {{ piece.quantity }}</p>
               </div>
               <div class="piece-totals">
@@ -1325,6 +1325,7 @@ watch(
             </div>
 
             <div v-if="editable && extraPieceId === piece.id" class="extra-form">
+              <strong class="piece-size">قطعة {{ pieceSizeLabel(piece.length, piece.width) }}</strong>
               <h4>خدمة إضافية</h4>
               <div class="grid">
                 <div>
@@ -1900,7 +1901,9 @@ watch(
   top: 0;
   z-index: 20;
   padding: 0.9rem 1.25rem;
-  font-size: 1.6rem;
+  text-align: center;
+  font-size: 2.1rem;
+  line-height: 1.4;
   font-weight: 600;
   background: hsl(var(--background));
   border: 1px solid hsl(var(--border));
@@ -1919,6 +1922,23 @@ watch(
 }
 .client-banner .debt.owes {
   color: hsl(0 60% 40%);
+}
+@media (max-width: 900px) {
+  .client-banner {
+    top: var(--topbar-h, 5.6rem);
+    font-size: 1.6rem;
+  }
+}
+.piece-title {
+  flex: 1 1 100%;
+  text-align: center;
+}
+.piece-size {
+  display: block;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.4;
 }
 .client-banner.inline {
   position: static;
