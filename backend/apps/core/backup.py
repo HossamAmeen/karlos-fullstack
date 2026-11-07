@@ -18,7 +18,31 @@ def backup_dir() -> Path:
     return path
 
 
+BACKUPS_TO_KEEP = 2
+
+
+def prune_backups(keep: int = BACKUPS_TO_KEEP) -> list[str]:
+    """Delete all but the newest `keep` backup files; return the removed names."""
+    files = sorted(
+        (f for f in backup_dir().glob("backup-*") if f.is_file()),
+        key=lambda f: f.name,
+        reverse=True,
+    )
+    removed = []
+    for old in files[keep:]:
+        old.unlink(missing_ok=True)
+        removed.append(old.name)
+    return removed
+
+
 def create_backup() -> Path:
+    """Create a backup, keep only the newest BACKUPS_TO_KEEP files, return the path."""
+    target = _write_backup()
+    prune_backups()
+    return target
+
+
+def _write_backup() -> Path:
     """Dump the default database into BACKUP_DIR and return the file path."""
     db = settings.DATABASES["default"]
     engine = db["ENGINE"]
