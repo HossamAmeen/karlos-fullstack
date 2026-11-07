@@ -127,7 +127,7 @@ async function submit() {
 </script>
 
 <template>
-  <UiDialog v-model:open="open" title="إضافة وديعة" description="سجّل مبلغًا مستلمًا من العميل، ويمكن ربطه بفاتورة محددة.">
+  <UiDialog v-model:open="open" persistent title="إضافة وديعة" description="سجّل مبلغًا مستلمًا من العميل، ويمكن ربطه بفاتورة محددة.">
     <form @submit.prevent="submit">
       <div class="ui-field">
         <UiLabel>العميل</UiLabel>

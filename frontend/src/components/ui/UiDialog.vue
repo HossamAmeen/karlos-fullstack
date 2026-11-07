@@ -3,19 +3,21 @@ import { onMounted, onUnmounted, watch } from 'vue'
 
 const open = defineModel<boolean>('open', { default: false })
 
-defineProps<{
+const props = defineProps<{
   title: string
   description?: string
+  /** When true, Escape and backdrop clicks do not close the dialog. */
+  persistent?: boolean
 }>()
 
 function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && open.value) {
+  if (event.key === 'Escape' && open.value && !props.persistent) {
     open.value = false
   }
 }
 
 function onBackdropClick(event: MouseEvent) {
-  if (event.target === event.currentTarget) {
+  if (event.target === event.currentTarget && !props.persistent) {
     open.value = false
   }
 }

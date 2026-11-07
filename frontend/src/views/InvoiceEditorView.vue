@@ -1142,7 +1142,7 @@ watch(
 
 <template>
   <div class="page">
-    <UiDialog v-model:open="showConfirmDialog" title="تم تأكيد الفاتورة بنجاح 🎉">
+    <UiDialog v-model:open="showConfirmDialog" persistent title="تم تأكيد الفاتورة بنجاح 🎉">
       <div class="confirm-dialog-content">
         <div class="success-icon-badge">
           <svg
@@ -1813,19 +1813,20 @@ watch(
       <p v-if="invoice.printed_at">تاريخ الطباعة: {{ formatDateTime(invoice.printed_at) }}</p>
       <table>
         <thead>
-          <tr><th>القطعة</th><th>الخدمة</th><th>السعر</th><th>الإجمالي</th></tr>
+          <tr><th>القطعة</th><th>الخدمة</th><th>السعر</th><th>العدد</th><th>الإجمالي</th></tr>
         </thead>
         <tbody>
           <template v-for="piece in invoicePieces" :key="piece.id">
             <tr v-for="(item, idx) in piece.items" :key="item.id">
               <td>
                 <template v-if="idx === 0">
-                  {{ pieceSizeLabel(piece.length, piece.width) }} × {{ piece.quantity }}
+                  {{ pieceSizeLabel(piece.length, piece.width) }}
                 </template>
               </td>
               <td>{{ item.service_name }}</td>
-              <td>{{ item.unit_price }}</td>
               <td>{{ item.line_total }}</td>
+              <td>{{ piece.quantity }}</td>
+              <td>{{ (Number(item.line_total) * Number(piece.quantity)).toFixed(2) }}</td>
             </tr>
           </template>
         </tbody>
